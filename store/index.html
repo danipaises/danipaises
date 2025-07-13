@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta name="google-site-verification" content="yR5aK_ETIDP6-GXGqavd93YF1fTy1QOg9tC4eAcUXBk" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dani Países Store Web - Criação de Sites Sob Medida</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .hero-bg {
+            background-color: #0c1427;
+            background-image: linear-gradient(45deg, rgba(17, 24, 39, 0.95), rgba(55, 65, 81, 0.9)), url('https://placehold.co/1600x900/111827/FFFFFF?text=</>');
+            background-size: cover;
+            background-position: center;
+        }
+        .service-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .process-step::after {
+            content: '';
+            position: absolute;
+            top: 2rem;
+            left: calc(100% + 1.25rem);
+            width: 5rem;
+            height: 2px;
+            background-color: #d1d5db;
+        }
+        .process-step:last-child::after {
+            display: none;
+        }
+         @media (max-width: 768px) {
+            .process-step::after {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-700">
+
+    <!-- Cabeçalho -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl md:text-2xl font-extrabold text-gray-800">Dani Países <span class="text-blue-600">Store Web</span></a>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#servicos" class="text-gray-600 hover:text-blue-600 font-medium transition">Serviços</a>
+                <a href="#processo" class="text-gray-600 hover:text-blue-600 font-medium transition">Processo</a>
+                <a href="#contato" class="text-gray-600 hover:text-blue-600 font-medium transition">Contato</a>
+            </div>
+            <div class="flex items-center">
+                 <a href="https://wa.me/5522992217505?text=quero%20comprar%20um%20site" target="_blank" rel="noopener noreferrer" class="hidden sm:block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-lg transition duration-300">
+                    Iniciar Projeto
+                </a>
+                <button class="md:hidden text-gray-600 hover:text-blue-600 ml-4" id="mobile-menu-button">
+                    <i class="fas fa-bars fa-lg"></i>
+                </button>
+            </div>
+        </nav>
+        <!-- Menu Mobile -->
+        <div class="hidden md:hidden" id="mobile-menu">
+            <a href="#servicos" class="block py-2 px-6 text-sm text-gray-600 hover:bg-blue-50">Serviços</a>
+            <a href="#processo" class="block py-2 px-6 text-sm text-gray-600 hover:bg-blue-50">Processo</a>
+            <a href="#contato" class="block py-2 px-6 text-sm text-gray-600 hover:bg-blue-50">Contato</a>
+        </div>
+    </header>
+
+    <!-- Seção Hero -->
+    <main>
+        <section class="hero-bg text-white">
+            <div class="container mx-auto px-6 py-24 md:py-32 text-center">
+                <h1 class="text-4xl md:text-6xl font-extrabold leading-tight mb-4">Transformamos sua Visão em um Site Incrível</h1>
+                <p class="text-lg md:text-xl text-blue-200 mb-8 max-w-3xl mx-auto">Criação de sites profissionais, rápidos e responsivos para ajudar seu negócio a crescer no mundo digital.</p>
+                <a href="https://wa.me/5522992217505?text=quero%20comprar%20um%20site" target="_blank" rel="noopener noreferrer" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300">Quero meu site</a>
+            </div>
+        </section>
+
+        <!-- Seção Serviços -->
+        <section id="servicos" class="py-20 bg-white">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Nossos Serviços</h2>
+                    <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Soluções completas para você marcar presença online de forma profissional e eficiente.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:max-w-4xl mx-auto gap-8">
+                    <!-- Card Site de Perfil Profissional -->
+                    <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
+                        <div>
+                            <div class="text-blue-600 mb-4"><i class="fas fa-user-tie fa-3x"></i></div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Site de Perfil Profissional</h3>
+                            <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 30,00</p>
+                            <p class="text-gray-600 mb-6">Destaque suas habilidades, experiências e portfólio com um site elegante que funciona como seu currículo online.</p>
+                        </div>
+                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Site%20de%20Perfil%20Profissional." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
+                           Contratar Serviço
+                        </a>
+                    </div>
+                     <!-- Card Agregador de Links -->
+                    <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
+                        <div>
+                            <div class="text-blue-600 mb-4"><i class="fas fa-link fa-3x"></i></div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Agregador de Links</h3>
+                            <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 30,00</p>
+                            <p class="text-gray-600 mb-6">Reúna todos os seus links importantes (redes sociais, portfólio, WhatsApp) em uma única página. Ideal para a bio de redes sociais.</p>
+                        </div>
+                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Agregador%20de%20Links." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
+                           Contratar Serviço
+                        </a>
+                    </div>
+                    <!-- Card Site de Jogos -->
+                    <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
+                        <div>
+                            <div class="text-blue-600 mb-4"><i class="fas fa-gamepad fa-3x"></i></div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Site de Jogos</h3>
+                            <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 20,00</p>
+                            <p class="text-gray-600 mb-6">Criamos a plataforma ideal para seu jogo, com integrações, leaderboards e um design imersivo para os jogadores.</p>
+                        </div>
+                         <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Site%20de%20Jogos." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
+                           Contratar Serviço
+                        </a>
+                    </div>
+                    <!-- Card Outros Sites -->
+                    <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
+                        <div>
+                            <div class="text-blue-600 mb-4"><i class="fas fa-cogs fa-3x"></i></div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Outros Sites</h3>
+                            <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 40,00</p>
+                            <p class="text-gray-600 mb-6">Soluções personalizadas para diversas necessidades online, desde sistemas simples a aplicações web. <br><strong>Não vendemos sites de e-commerce.</strong></p>
+                        </div>
+                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20site%20personalizado." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
+                           Contratar Serviço
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção Processo -->
+        <section id="processo" class="py-20 bg-gray-100">
+            <div class="container mx-auto px-6">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Nosso Processo Criativo</h2>
+                    <p class="text-gray-600 mt-2">Um fluxo de trabalho transparente e colaborativo para garantir o melhor resultado.</p>
+                </div>
+                <div class="flex flex-col md:flex-row justify-center items-start md:items-center space-y-8 md:space-y-0 md:space-x-20">
+                    <!-- Passo 1 -->
+                    <div class="process-step relative text-center max-w-xs">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">1</div>
+                        <h3 class="text-lg font-semibold text-gray-800">Briefing</h3>
+                        <p class="text-sm text-gray-600">Entendemos suas metas e necessidades.</p>
+                    </div>
+                    <!-- Passo 2 -->
+                    <div class="process-step relative text-center max-w-xs">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">2</div>
+                        <h3 class="text-lg font-semibold text-gray-800">Design</h3>
+                        <p class="text-sm text-gray-600">Criamos o layout e a identidade visual do site.</p>
+                    </div>
+                    <!-- Passo 3 -->
+                    <div class="process-step relative text-center max-w-xs">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">3</div>
+                        <h3 class="text-lg font-semibold text-gray-800">Desenvolvimento</h3>
+                        <p class="text-sm text-gray-600">Codificamos o site com as melhores tecnologias.</p>
+                    </div>
+                    <!-- Passo 4 -->
+                    <div class="process-step relative text-center max-w-xs">
+                        <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">4</div>
+                        <h3 class="text-lg font-semibold text-gray-800">Lançamento</h3>
+                        <p class="text-sm text-gray-600"> ensinamos como você pública gratuitamente</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção Contato (CTA) -->
+        <section id="contato" class="py-20 bg-blue-700 text-white">
+            <div class="container mx-auto px-6 text-center">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4">Vamos Construir Algo Incrível Juntos?</h2>
+                <p class="text-blue-200 mb-8 max-w-2xl mx-auto">Entre em contato para um orçamento sem compromisso. Estamos prontos para transformar sua ideia em realidade.</p>
+                <a href="https://wa.me/5522992217505?text=quero%20comprar%20um%20site" target="_blank" rel="noopener noreferrer" class="bg-white text-blue-600 font-bold py-3 px-8 rounded-lg text-lg hover:bg-gray-100 transition duration-300">
+                    <i class="fab fa-whatsapp mr-2"></i> Entrar em Contato
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="bg-gray-800 text-white">
+        <div class="container mx-auto px-6 py-8 text-center">
+            <p>&copy; 2025 Dani Países Store Web. Todos os direitos reservados.</p>
+            <p class="text-sm text-gray-400 mt-2">Feito com <i class="fas fa-heart text-red-500"></i> e muito código.</p>
+        </div>
+    </footer>
+
+    <script>
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+    </script>
+
+</body>
+</html>
+
