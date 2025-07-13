@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Adivinhação: Bandeiras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; 
+        }
+        
+        .background-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .moving-flag {
+            position: absolute;
+            color: #e5e7eb;
+            opacity: 0.6;
+            animation: floatUp 25s infinite linear;
+            bottom: -50px; 
+        }
+
+        @keyframes floatUp {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                transform: translateY(-110vh);
+            }
+        }
+        
+        .game-card {
+            position: relative; 
+            z-index: 10;
+        }
+
+        .option-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .option-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .correct {
+            background-color: #22c55e !important;
+            color: white;
+            border-color: #16a34a;
+        }
+        .incorrect {
+            background-color: #ef4444 !important;
+            color: white;
+            border-color: #dc2626;
+        }
+        #flag-image {
+            object-fit: cover;
+            border-radius: 0.75rem; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb; 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="w-screen h-screen bg-gray-100 flex items-center justify-center p-2 sm:p-4 relative">
+        <div class="background-container" id="background-animation"></div>
+
+        <div class="game-card bg-white rounded-2xl shadow-xl w-full max-w-md h-full sm:h-auto sm:max-h-[95vh] flex flex-col p-4">
+            
+            <header class="text-center shrink-0">
+                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Adivinhe a Bandeira</h1>
+                 <div id="scoreboard" class="flex flex-col items-center text-gray-600 mt-2 font-semibold text-sm">
+                    <span>Acertos: <span id="score">0</span></span>
+                    <span>Erros: <span id="errors">0</span></span>
+                 </div>
+            </header>
+
+            <main id="game-area" class="flex-grow flex flex-col justify-center min-h-0 py-2">
+                <div class="flex justify-center mb-4">
+                     <img id="flag-image" src="" alt="Bandeira para adivinhar" class="bg-gray-200 w-full max-w-[280px] h-[175px]">
+                </div>
+
+                <div id="options" class="grid grid-cols-2 gap-3"></div>
+                
+                <div class="mt-4">
+                    <p id="result" class="text-center h-8 text-xl font-bold"></p>
+                    <button id="next-button" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition shadow-lg hidden mt-2">
+                        Próxima Rodada
+                    </button>
+                </div>
+            </main>
+            
+            <div id="end-game-screen" class="hidden flex-grow flex-col items-center justify-center text-center">
+                <h2 class="text-3xl font-bold text-gray-800">Fim de Jogo!</h2>
+                <p class="text-lg text-gray-600 mt-2">Você adivinhou todas as bandeiras.</p>
+                <p id="final-score" class="text-xl font-bold mt-4"></p>
+                <button id="restart-button" class="w-full max-w-xs mt-6 bg-green-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-700 transition shadow-lg">
+                    Jogar Novamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const flagImageElement = document.getElementById('flag-image');
+        const optionsContainer = document.getElementById('options');
+        const nextButton = document.getElementById('next-button');
+        const resultElement = document.getElementById('result');
+        const backgroundContainer = document.getElementById('background-animation');
+        const scoreElement = document.getElementById('score');
+        const errorsElement = document.getElementById('errors');
+        const gameArea = document.getElementById('game-area');
+        const endGameScreen = document.getElementById('end-game-screen');
+        const finalScoreElement = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+
+        // Banco de dados com mais de 100 países
+        const ALL_COUNTRIES = [
+            { name: 'Afeganistão', flag: 'https://flagcdn.com/w320/af.png' }, { name: 'África do Sul', flag: 'https://flagcdn.com/w320/za.png' }, { name: 'Albânia', flag: 'https://flagcdn.com/w320/al.png' }, { name: 'Alemanha', flag: 'https://flagcdn.com/w320/de.png' }, { name: 'Andorra', flag: 'https://flagcdn.com/w320/ad.png' }, { name: 'Angola', flag: 'https://flagcdn.com/w320/ao.png' }, { name: 'Arábia Saudita', flag: 'https://flagcdn.com/w320/sa.png' }, { name: 'Argélia', flag: 'https://flagcdn.com/w320/dz.png' }, { name: 'Argentina', flag: 'https://flagcdn.com/w320/ar.png' }, { name: 'Armênia', flag: 'https://flagcdn.com/w320/am.png' }, { name: 'Austrália', flag: 'https://flagcdn.com/w320/au.png' }, { name: 'Áustria', flag: 'https://flagcdn.com/w320/at.png' }, { name: 'Azerbaijão', flag: 'https://flagcdn.com/w320/az.png' }, { name: 'Bangladesh', flag: 'https://flagcdn.com/w320/bd.png' }, { name: 'Bélgica', flag: 'https://flagcdn.com/w320/be.png' }, { name: 'Bielorrússia', flag: 'https://flagcdn.com/w320/by.png' }, { name: 'Bolívia', flag: 'https://flagcdn.com/w320/bo.png' }, { name: 'Bósnia e Herzegovina', flag: 'https://flagcdn.com/w320/ba.png' }, { name: 'Brasil', flag: 'https://flagcdn.com/w320/br.png' }, { name: 'Bulgária', flag: 'https://flagcdn.com/w320/bg.png' }, { name: 'Camarões', flag: 'https://flagcdn.com/w320/cm.png' }, { name: 'Canadá', flag: 'https://flagcdn.com/w320/ca.png' }, { name: 'Catar', flag: 'https://flagcdn.com/w320/qa.png' }, { name: 'Cazaquistão', flag: 'https://flagcdn.com/w320/kz.png' }, { name: 'Chile', flag: 'https://flagcdn.com/w320/cl.png' }, { name: 'China', flag: 'https://flagcdn.com/w320/cn.png' }, { name: 'Chipre', flag: 'https://flagcdn.com/w320/cy.png' }, { name: 'Colômbia', flag: 'https://flagcdn.com/w320/co.png' }, { name: 'Coreia do Sul', flag: 'https://flagcdn.com/w320/kr.png' }, { name: 'Costa do Marfim', flag: 'https://flagcdn.com/w320/ci.png' }, { name: 'Costa Rica', flag: 'https://flagcdn.com/w320/cr.png' }, { name: 'Croácia', flag: 'https://flagcdn.com/w320/hr.png' }, { name: 'Cuba', flag: 'https://flagcdn.com/w320/cu.png' }, { name: 'Dinamarca', flag: 'https://flagcdn.com/w320/dk.png' }, { name: 'Egito', flag: 'https://flagcdn.com/w320/eg.png' }, { name: 'Emirados Árabes Unidos', flag: 'https://flagcdn.com/w320/ae.png' }, { name: 'Equador', flag: 'https://flagcdn.com/w320/ec.png' }, { name: 'Eslováquia', flag: 'https://flagcdn.com/w320/sk.png' }, { name: 'Eslovênia', flag: 'https://flagcdn.com/w320/si.png' }, { name: 'Espanha', flag: 'https://flagcdn.com/w320/es.png' }, { name: 'Estados Unidos', flag: 'https://flagcdn.com/w320/us.png' }, { name: 'Estônia', flag: 'https://flagcdn.com/w320/ee.png' }, { name: 'Filipinas', flag: 'https://flagcdn.com/w320/ph.png' }, { name: 'Finlândia', flag: 'https://flagcdn.com/w320/fi.png' }, { name: 'França', flag: 'https://flagcdn.com/w320/fr.png' }, { name: 'Gana', flag: 'https://flagcdn.com/w320/gh.png' }, { name: 'Geórgia', flag: 'https://flagcdn.com/w320/ge.png' }, { name: 'Grécia', flag: 'https://flagcdn.com/w320/gr.png' }, { name: 'Guatemala', flag: 'https://flagcdn.com/w320/gt.png' }, { name: 'Honduras', flag: 'https://flagcdn.com/w320/hn.png' }, { name: 'Hungria', flag: 'https://flagcdn.com/w320/hu.png' }, { name: 'Iêmen', flag: 'https://flagcdn.com/w320/ye.png' }, { name: 'Índia', flag: 'https://flagcdn.com/w320/in.png' }, { name: 'Indonésia', flag: 'https://flagcdn.com/w320/id.png' }, { name: 'Irã', flag: 'https://flagcdn.com/w320/ir.png' }, { name: 'Iraque', flag: 'https://flagcdn.com/w320/iq.png' }, { name: 'Irlanda', flag: 'https://flagcdn.com/w320/ie.png' }, { name: 'Islândia', flag: 'https://flagcdn.com/w320/is.png' }, { name: 'Israel', flag: 'https://flagcdn.com/w320/il.png' }, { name: 'Itália', flag: 'https://flagcdn.com/w320/it.png' }, { name: 'Jamaica', flag: 'https://flagcdn.com/w320/jm.png' }, { name: 'Japão', flag: 'https://flagcdn.com/w320/jp.png' }, { name: 'Jordânia', flag: 'https://flagcdn.com/w320/jo.png' }, { name: 'Letônia', flag: 'https://flagcdn.com/w320/lv.png' }, { name: 'Líbano', flag: 'https://flagcdn.com/w320/lb.png' }, { name: 'Lituânia', flag: 'https://flagcdn.com/w320/lt.png' }, { name: 'Luxemburgo', flag: 'https://flagcdn.com/w320/lu.png' }, { name: 'Macedônia do Norte', flag: 'https://flagcdn.com/w320/mk.png' }, { name: 'Malásia', flag: 'https://flagcdn.com/w320/my.png' }, { name: 'Malta', flag: 'https://flagcdn.com/w320/mt.png' }, { name: 'Marrocos', flag: 'https://flagcdn.com/w320/ma.png' }, { name: 'México', flag: 'https://flagcdn.com/w320/mx.png' }, { name: 'Moçambique', flag: 'https://flagcdn.com/w320/mz.png' }, { name: 'Moldávia', flag: 'https://flagcdn.com/w320/md.png' }, { name: 'Mônaco', flag: 'https://flagcdn.com/w320/mc.png' }, { name: 'Mongólia', flag: 'https://flagcdn.com/w320/mn.png' }, { name: 'Montenegro', flag: 'https://flagcdn.com/w320/me.png' }, { name: 'Nepal', flag: 'https://flagcdn.com/w320/np.png' }, { name: 'Nigéria', flag: 'https://flagcdn.com/w320/ng.png' }, { name: 'Noruega', flag: 'https://flagcdn.com/w320/no.png' }, { name: 'Nova Zelândia', flag: 'https://flagcdn.com/w320/nz.png' }, { name: 'Países Baixos', flag: 'https://flagcdn.com/w320/nl.png' }, { name: 'Panamá', flag: 'https://flagcdn.com/w320/pa.png' }, { name: 'Paquistão', flag: 'https://flagcdn.com/w320/pk.png' }, { name: 'Paraguai', flag: 'https://flagcdn.com/w320/py.png' }, { name: 'Peru', flag: 'https://flagcdn.com/w320/pe.png' }, { name: 'Polônia', flag: 'https://flagcdn.com/w320/pl.png' }, { name: 'Portugal', flag: 'https://flagcdn.com/w320/pt.png' }, { name: 'Quênia', flag: 'https://flagcdn.com/w320/ke.png' }, { name: 'Reino Unido', flag: 'https://flagcdn.com/w320/gb.png' }, { name: 'República Tcheca', flag: 'https://flagcdn.com/w320/cz.png' }, { name: 'Romênia', flag: 'https://flagcdn.com/w320/ro.png' }, { name: 'Rússia', flag: 'https://flagcdn.com/w320/ru.png' }, { name: 'San Marino', flag: 'https://flagcdn.com/w320/sm.png' }, { name: 'Senegal', flag: 'https://flagcdn.com/w320/sn.png' }, { name: 'Sérvia', flag: 'https://flagcdn.com/w320/rs.png' }, { name: 'Singapura', flag: 'https://flagcdn.com/w320/sg.png' }, { name: 'Síria', flag: 'https://flagcdn.com/w320/sy.png' }, { name: 'Sri Lanka', flag: 'https://flagcdn.com/w320/lk.png' }, { name: 'Suécia', flag: 'https://flagcdn.com/w320/se.png' }, { name: 'Suíça', flag: 'https://flagcdn.com/w320/ch.png' }, { name: 'Tailândia', flag: 'https://flagcdn.com/w320/th.png' }, { name: 'Tunísia', flag: 'https://flagcdn.com/w320/tn.png' }, { name: 'Turquia', flag: 'https://flagcdn.com/w320/tr.png' }, { name: 'Ucrânia', flag: 'https://flagcdn.com/w320/ua.png' }, { name: 'Uruguai', flag: 'https://flagcdn.com/w320/uy.png' }, { name: 'Vaticano', flag: 'https://flagcdn.com/w320/va.png' }, { name: 'Venezuela', flag: 'https://flagcdn.com/w320/ve.png' }, { name: 'Vietnã', flag: 'https://flagcdn.com/w320/vn.png' }
+        ];
+        
+        let score, errors, currentCorrectAnswer, answerLocked;
+        let unseenCountries = [];
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startGame() {
+            score = 0;
+            errors = 0;
+            answerLocked = false;
+            unseenCountries = shuffleArray([...ALL_COUNTRIES]);
+            
+            updateScoreboard();
+            gameArea.classList.remove('hidden');
+            endGameScreen.classList.add('hidden');
+            newRound();
+        }
+
+        function newRound() {
+            if (unseenCountries.length === 0) {
+                showEndGameScreen();
+                return;
+            }
+
+            answerLocked = false;
+            resultElement.textContent = '';
+            optionsContainer.innerHTML = '';
+            nextButton.classList.add('hidden');
+
+            const correctAnswerData = unseenCountries.pop();
+            currentCorrectAnswer = correctAnswerData.name;
+            
+            flagImageElement.src = correctAnswerData.flag;
+            flagImageElement.onerror = () => {
+                flagImageElement.src = 'https://placehold.co/320x200/ccc/ffffff?text=Bandeira+Indisponível';
+                flagImageElement.alt = 'Bandeira indisponível';
+            };
+
+            const wrongOptions = ALL_COUNTRIES
+                .filter(country => country.name !== currentCorrectAnswer)
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+
+            const roundOptions = shuffleArray([...wrongOptions, correctAnswerData]);
+
+            roundOptions.forEach(item => {
+                const button = document.createElement('button');
+                button.textContent = item.name;
+                button.classList.add('option-button', 'w-full', 'p-3', 'text-sm', 'sm:p-4', 'sm:text-base', 'border-2', 'border-gray-300', 'rounded-lg', 'font-semibold', 'text-gray-700', 'hover:bg-gray-200', 'focus:outline-none');
+                button.onclick = () => checkAnswer(button);
+                optionsContainer.appendChild(button);
+            });
+        }
+
+        function checkAnswer(selectedButton) {
+            if (answerLocked) return;
+            answerLocked = true;
+            
+            const isCorrect = selectedButton.textContent === currentCorrectAnswer;
+
+            if (isCorrect) {
+                score++;
+                selectedButton.classList.add('correct');
+                resultElement.textContent = 'Correto!';
+                resultElement.classList.add('text-green-600');
+            } else {
+                errors++;
+                selectedButton.classList.add('incorrect');
+                resultElement.textContent = `Errado! É ${currentCorrectAnswer}.`;
+                resultElement.classList.add('text-red-600');
+                
+                Array.from(optionsContainer.children).forEach(btn => {
+                    if (btn.textContent === currentCorrectAnswer) btn.classList.add('correct');
+                });
+            }
+            
+            updateScoreboard();
+            nextButton.classList.remove('hidden');
+        }
+
+        function updateScoreboard() {
+            scoreElement.textContent = score;
+            errorsElement.textContent = errors;
+        }
+        
+        function showEndGameScreen() {
+            gameArea.classList.add('hidden');
+            endGameScreen.classList.remove('hidden');
+            finalScoreElement.textContent = `Seu placar final: ${score} acertos e ${errors} erros.`;
+        }
+
+        function createBackgroundAnimation() {
+            const numberOfFlags = 20;
+            const flagSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6z"></path></svg>`;
+
+            for (let i = 0; i < numberOfFlags; i++) {
+                const flag = document.createElement('span');
+                flag.classList.add('moving-flag');
+                flag.innerHTML = flagSvg;
+                flag.style.left = `${Math.random() * 100}vw`;
+                flag.style.animationDuration = `${Math.random() * 15 + 20}s`;
+                flag.style.animationDelay = `${Math.random() * 25}s`;
+                backgroundContainer.appendChild(flag);
+            }
+        }
+        
+        nextButton.addEventListener('click', newRound);
+        restartButton.addEventListener('click', startGame);
+
+        window.onload = () => {
+            createBackgroundAnimation();
+            startGame();
+        };
+
+    </script>
+</body>
+</html>
+
