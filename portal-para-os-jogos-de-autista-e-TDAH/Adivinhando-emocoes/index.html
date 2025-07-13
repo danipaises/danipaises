@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo das Emoções</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+    body {
+    font-family: 'Inter', sans-serif;
+    transition: background-color 0.3s, color 0.3s;
+    }
+    .face-display {
+    font-size: 6rem;
+    line-height: 1;
+    }
+    .btn, .btn-setting {
+    transition: all 0.2s ease-in-out;
+    }
+    .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    /* Estilos para o Modo de Baixo Estímulo */
+    .low-sensory-mode {
+    background-color: #fff !important;
+    color: #000 !important;
+    }
+    .low-sensory-mode .shadow-xl { box-shadow: none; border: 2px solid #000; }
+    .low-sensory-mode .bg-gray-100 { background-color: #fff; }
+    .low-sensory-mode .bg-white { background-color: #fff; }
+    .low-sensory-mode .text-gray-800 { color: #000; }
+    .low-sensory-mode .text-gray-600 { color: #333; }
+    .low-sensory-mode .btn {
+    transform: none !important;
+    box-shadow: none !important;
+    border: 2px solid #000;
+    }
+    .low-sensory-mode .bg-indigo-600 { background-color: #000; color: #fff;}
+    .low-sensory-mode .bg-gray-200 { background-color: #eee; }
+    .low-sensory-mode .text-green-600 { color: #008000; }
+    .low-sensory-mode .text-red-600 { color: #d0000; }
+    .low-sensory-mode #explanation-container { background-color: #f0f0f0; border-top: 2px solid #ccc;}
+
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- --- Janela Modal de Instruções (aparece no início) --- -->
+    <div id="instructions-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-md w-full text-left">
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-800">Como Jogar</h2>
+    <div class="space-y-3 text-gray-700">
+    <p><strong>1. Objetivo:</strong> Adivinhe qual emoção o rosto está a expressar.</p>
+    <p><strong>2. Jogue:</strong> Escolha uma das quatro opções que achar correta.</p>
+    <p><strong>3. Aprenda:</strong> Depois de escolher, vai aparecer uma explicação sobre a emoção correta para o ajudar a aprender.</p>
+    <p><strong>Dica:</strong> Pode mudar a dificuldade e ativar o "Modo Simples" para menos distrações visuais a qualquer momento!</p>
+    </div>
+    <button id="start-game-button" class="btn mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700">
+    Começar a Jogar!
+    </button>
+    </div>
+    </div>
+
+
+    <!-- --- Conteúdo Principal do Jogo --- -->
+    <div id="game-container" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 text-center w-full max-w-lg mx-auto">
+    
+    <fieldset class="border-2 border-gray-300 rounded-lg p-4 mb-6">
+    <legend class="text-lg font-semibold px-2">Configurações</legend>
+    <div class="flex flex-col sm:flex-row justify-around items-center gap-4">
+    <div class="flex items-center gap-2">
+    <label for="difficulty" class="font-semibold">Dificuldade:</label>
+    <select id="difficulty" class="btn-setting border-2 border-gray-300 rounded-md p-2">
+    <option value="easy">Fácil</option>
+    <option value="medium">Médio</option>
+    </select>
+    </div>
+    <div class="flex items-center gap-2">
+    <label for="low-sensory-toggle" class="font-semibold">Modo Simples:</label>
+    <input type="checkbox" id="low-sensory-toggle" class="h-6 w-6">
+    </div>
+    </div>
+    </fieldset>
+    
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 mb-6">Qual é a emoção?</h1>
+
+    <div id="face-display" class="face-display my-8 text-gray-800"></div>
+
+    <div id="options-container" class="grid grid-cols-2 gap-4 mb-6"></div>
+
+    <p id="feedback" class="h-6 text-lg font-semibold mb-4">&nbsp;</p>
+
+    <div id="explanation-container" class="bg-gray-100 rounded-lg p-4 text-left hidden">
+    <h3 id="explanation-title" class="font-bold text-lg mb-1"></h3>
+    <p id="explanation-text"></p>
+    </div>
+
+    <button id="next-button" class="btn mt-6 w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg">
+    Próximo
+    </button>
+
+    </div>
+
+    <script>
+    // --- Elementos do DOM ---
+    const instructionsModal = document.getElementById('instructions-modal');
+    const startGameButton = document.getElementById('start-game-button');
+    const faceDisplay = document.getElementById('face-display');
+    const optionsContainer = document.getElementById('options-container');
+    const feedback = document.getElementById('feedback');
+    const nextButton = document.getElementById('next-button');
+    const explanationContainer = document.getElementById('explanation-container');
+    const explanationTitle = document.getElementById('explanation-title');
+    const explanationText = document.getElementById('explanation-text');
+    const difficultySelect = document.getElementById('difficulty');
+    const lowSensoryToggle = document.getElementById('low-sensory-toggle');
+    
+    // --- Dados do Jogo ---
+    const emotions = {
+    easy: [
+    { face: '😊', name: 'Feliz', description: 'Sentimento de alegria e contentamento. Uma emoção positiva que nos faz sorrir.' },
+    { face: '😥', name: 'Triste', description: 'Sentimento de infelicidade e melancolia. Uma emoção que surge quando perdemos algo importante.' },
+    { face: '😠', name: 'Zangado', description: 'Sentimento de raiva e irritação. Uma emoção que surge quando algo nos frustra ou nos magoa.' },
+    { face: '😮', name: 'Surpreso', description: 'Reação emocional a algo inesperado. Uma emoção breve que surge quando algo nos apanha desprevenidos.' },
+    { face: '😱', name: 'Assustado', description: 'Sentimento de medo intenso. Uma emoção de proteção que surge quando percebemos perigo.' },
+    { face: '😂', name: 'Alegre', description: 'Uma forma intensa de felicidade que nos faz rir. Expressa grande contentamento e diversão.' },
+    { face: '😍', name: 'Apaixonado', description: 'Sentimento de amor e admiração intensa. Uma emoção positiva de ligação profunda a alguém ou algo.' },
+    { face: '😭', name: 'Muito Triste', description: 'Uma forma intensa de tristeza que provoca choro. Surge em momentos de grande dor emocional.' }
+    ],
+    medium: [
+    { face: '🤔', name: 'Pensativo', description: 'Estado de reflexão e concentração mental. Não é uma emoção, mas um estado cognitivo de análise.' },
+    { face: '🤢', name: 'Nojo', description: 'Sentimento de repulsa e aversão. Uma emoção básica que nos protege de coisas prejudiciais.' },
+    { face: '😑', name: 'Neutro', description: 'Estado sem emoção particular. Representa calma emocional ou ausência de sentimentos fortes.' },
+    { face: '🤯', name: 'Chocado', description: 'Sentimento de espanto extremo. Uma forma intensa de surpresa face a algo inacreditável.' },
+    { face: '🥺', name: 'Suplicante', description: 'Expressão de vulnerabilidade e pedido. Combina tristeza com esperança de compaixão.' },
+    { face: '🧐', name: 'Desconfiado', description: 'Sentimento de dúvida e suspeita. Uma emoção de cautela face ao desconhecido.' },
+    { face: '🥴', name: 'Confuso', description: 'Estado de desorientação mental. Surge quando não conseguimos compreender uma situação.' },
+    { face: '🙄', name: 'Irritado', description: 'Sentimento de aborrecimento e impaciência. Uma forma ligeira de raiva face a algo tedioso.' },
+    { face: '😇', name: 'Inocente', description: 'Expressão de pureza e bondade. Representa ausência de malícia ou culpa.' },
+    { face: '🤩', name: 'Fascinado', description: 'Sentimento de admiração e encantamento. Uma emoção positiva de grande interesse e entusiasmo.' }
+    ]
+    };
+
+    let allEmotionsForLevel = [];
+    let emotionPool = [];
+    let currentEmotion = null;
+
+    // --- Funções do Jogo ---
+
+    function shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+    }
+    }
+    
+    function setupGame() {
+    const difficulty = difficultySelect.value;
+    if (difficulty === 'easy') {
+    allEmotionsForLevel = [...emotions.easy];
+    } else {
+    allEmotionsForLevel = [...emotions.easy, ...emotions.medium];
+    }
+    refillPool();
+    displayNewFace();
+    }
+
+    function refillPool() {
+    emotionPool = [...allEmotionsForLevel];
+    shuffle(emotionPool);
+    }
+
+    function displayNewFace() {
+    if (emotionPool.length === 0) {
+    refillPool();
+    }
+    currentEmotion = emotionPool.pop();
+    faceDisplay.textContent = currentEmotion.face;
+
+    let options = [currentEmotion];
+    let otherEmotions = allEmotionsForLevel.filter(e => e.name !== currentEmotion.name);
+    shuffle(otherEmotions);
+    const optionsCount = Math.min(3, otherEmotions.length);
+    options.push(...otherEmotions.slice(0, optionsCount));
+    shuffle(options);
+
+    optionsContainer.innerHTML = '';
+    options.forEach(opt => {
+    const button = document.createElement('button');
+    button.textContent = opt.name;
+    button.disabled = false;
+    button.classList.add('btn', 'bg-gray-200', 'text-gray-700', 'font-semibold', 'py-3', 'px-4', 'rounded-lg');
+    button.onclick = () => checkAnswer(opt);
+    optionsContainer.appendChild(button);
+    });
+    
+    feedback.textContent = '\u00A0';
+    feedback.className = 'h-6 text-lg font-semibold mb-4';
+    explanationContainer.classList.add('hidden');
+    nextButton.style.display = 'none'; 
+    optionsContainer.style.display = 'grid';
+    }
+
+    function checkAnswer(selectedOption) {
+    const buttons = optionsContainer.querySelectorAll('button');
+    buttons.forEach(button => button.disabled = true);
+
+    if (selectedOption.name === currentEmotion.name) {
+    feedback.textContent = 'Correto!';
+    feedback.classList.add('text-green-600');
+    } else {
+    feedback.innerHTML = `Quase! A resposta era <strong>${currentEmotion.name}</strong>.`;
+    feedback.classList.add('text-red-600');
+    }
+    
+    explanationTitle.textContent = `${currentEmotion.face} ${currentEmotion.name}`;
+    explanationText.textContent = currentEmotion.description;
+    explanationContainer.classList.remove('hidden');
+    
+    optionsContainer.style.display = 'none';
+    nextButton.style.display = 'block';
+    }
+
+    // --- Listeners de Eventos ---
+    
+    // Listener para o botão que começa o jogo
+    startGameButton.addEventListener('click', () => {
+    instructionsModal.classList.add('hidden'); // Esconde a janela de instruções
+    setupGame(); // Inicia o jogo pela primeira vez
+    });
+    
+    // Outros listeners
+    nextButton.addEventListener('click', displayNewFace);
+    difficultySelect.addEventListener('change', setupGame);
+    lowSensoryToggle.addEventListener('change', (e) => {
+    document.body.classList.toggle('low-sensory-mode', e.target.checked);
+    });
+
+    // O jogo não começa automaticamente, espera pelo clique no botão "Começar a Jogar!".
+    </script>
+</body>
+</html>
