@@ -1,9 +1,0 @@
-# Plugins recomendados para GitHub Pages
-plugins:
-  - jekyll-sitemap
-    - jekyll-seo-tag
-
-    # Informações básicas do site (opcional, mas bom para o SEO)
-    title: Portfólio da Dani Paises
-    description: Uma coleção dos meus projetos e trabalhos de desenvolvimento web.
-    
