@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conecta Emoções</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif;
+            /* CORREÇÃO: Usar 'grid' para uma centragem mais robusta e evitar duplicação */
+            display: grid;
+            place-items: center;
+        }
+        :root { --bg-color: #F0F8FF; --card-color: #FFFFFF; --text-color: #333333; --accent-color: #AED9E0; --correct-color: #A8E6CF; --incorrect-color: #FFD3B6; --button-color: #88C0D0; --button-hover: #5E81AC; }
+        .option-card, .mode-btn, .difficulty-btn { transition: all 0.2s ease-in-out; border: 2px solid var(--accent-color); display: flex; align-items: center; justify-content: center; min-height: 120px; padding: 1rem; }
+        .option-card:hover { transform: scale(1.05); border-color: var(--button-hover); }
+        .correct-answer { border-color: var(--correct-color) !important; background-color: #F0FFF0; transform: scale(1.05); }
+        .incorrect-answer { opacity: 0.5; pointer-events: none; }
+        .feedback-message { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .selected { background-color: var(--button-color); color: white; border-color: var(--button-hover); }
+        #question-display.emoji-pair-question { font-size: 4.5rem; letter-spacing: 0.5rem; }
+        #options-grid.single-emoji .option-card { font-size: 3rem; }
+        #options-grid.pair-emoji .option-card { font-size: 2.25rem; letter-spacing: 0.5rem; }
+    </style>
+</head>
+<body class="bg-[var(--bg-color)] text-[var(--text-color)] min-h-screen p-4">
+    <div id="game-container" class="w-full max-w-4xl mx-auto text-center">
+        <!-- Tela Inicial -->
+        <div id="start-screen" class="p-8 bg-[var(--card-color)] rounded-2xl shadow-lg">
+            <h1 class="text-4xl md:text-5xl font-bold text-[var(--button-hover)] mb-4">Conecta Emoções</h1>
+            <p class="text-lg md:text-xl mb-2">1. Escolha o modo de jogo:</p>
+            <div id="mode-selector" class="flex flex-wrap justify-center gap-3 md:gap-4 mb-6">
+                <button id="btn-classico" class="mode-btn font-semibold py-2 px-4 md:px-6 rounded-lg">Clássico</button>
+                <button id="btn-inverso" class="mode-btn font-semibold py-2 px-4 md:px-6 rounded-lg">Inverso</button>
+                <button id="btn-misto" class="mode-btn font-semibold py-2 px-4 md:px-6 rounded-lg">Misto</button>
+                <button id="btn-misto-inverso" class="mode-btn font-semibold py-2 px-4 md:px-6 rounded-lg">Misto Inverso</button>
+            </div>
+            <p class="text-lg md:text-xl mb-2">2. Escolha o nível:</p>
+            <div id="difficulty-selector" class="flex justify-center gap-4 mb-8">
+                <button id="btn-facil" class="difficulty-btn font-semibold py-2 px-6 rounded-lg">Fácil</button>
+                <button id="btn-medio" class="difficulty-btn font-semibold py-2 px-6 rounded-lg">Médio</button>
+                <button id="btn-dificil" class="difficulty-btn font-semibold py-2 px-6 rounded-lg">Difícil</button>
+            </div>
+            <button id="start-button" class="bg-[var(--button-color)] hover:bg-[var(--button-hover)] text-white font-bold py-4 px-10 text-2xl rounded-xl shadow-md transition-transform transform hover:scale-105">Começar</button>
+        </div>
+        <!-- Telas do Jogo -->
+        <div id="main-game" class="hidden">
+            <div id="question-display" class="mb-8 p-6 bg-[var(--card-color)] rounded-2xl shadow-md min-h-[150px] flex items-center justify-center">
+                <div id="question-emoji" class="text-7xl md:text-8xl"></div>
+                <h2 id="question-text" class="text-3xl md:text-4xl font-bold"></h2>
+            </div>
+            <div id="options-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            <div id="feedback-area" class="mt-8 h-12"><p id="feedback-text" class="text-2xl font-semibold feedback-message"></p></div>
+        </div>
+        <div id="end-screen" class="hidden p-8 bg-[var(--card-color)] rounded-2xl shadow-lg text-center">
+            <div class="text-8xl mb-4">🎉</div>
+            <h1 class="text-4xl font-bold text-green-600 mb-4">Parabéns!</h1>
+            <p class="text-xl mb-8">Você conectou todas as emoções. Você se saiu muito bem!</p>
+            <button id="play-again-button" class="bg-[var(--button-color)] hover:bg-[var(--button-hover)] text-white font-bold py-4 px-10 text-2xl rounded-xl shadow-md transition-transform transform hover:scale-105">Voltar ao Início</button>
+        </div>
+    </div>
+    <script>
+        const startScreen = document.getElementById('start-screen'), mainGame = document.getElementById('main-game'), endScreen = document.getElementById('end-screen');
+        const startButton = document.getElementById('start-button'), playAgainButton = document.getElementById('play-again-button');
+        const questionDisplay = document.getElementById('question-display'), questionEmoji = document.getElementById('question-emoji'), questionText = document.getElementById('question-text');
+        const optionsGrid = document.getElementById('options-grid'), feedbackText = document.getElementById('feedback-text');
+        const emotionData = { "Alegre": { emoji: "😄", situations: ["Ganhar um presente de aniversário.", "Ver um amigo querido.", "Brincar com o seu animal de estimação."] }, "Triste": { emoji: "😢", situations: ["Deixar o gelado cair no chão.", "O seu brinquedo favorito partiu-se.", "Sentir saudades de alguém."] }, "Bravo": { emoji: "😠", situations: ["Alguém pegou no seu brinquedo sem pedir.", "Levar uma bronca por algo que não fez.", "Perder num jogo de forma injusta."] }, "Surpreso": { emoji: "😲", situations: ["Ver uma festa surpresa para si.", "Ouvir um barulho inesperado.", "Ver um truque de magia."] }, "Calmo": { emoji: "😌", situations: ["Ouvir uma música suave.", "Receber um abraço apertado.", "Deitar-se na sua cama quentinha."] }, "Ansioso": { emoji: "😟", situations: ["Esperar pela sua vez num brinquedo popular.", "Fazer uma apresentação na escola.", "Antes de uma prova importante."] }, "Assustado": { emoji: "😨", situations: ["Assistir a um filme de terror.", "Ouvir um barulho estranho à noite.", "Perder-se num lugar desconhecido."] } };
+        const mixedEmotionData = [ { situation: "É o teu primeiro dia numa escola nova.", emotions: ["Alegre", "Ansioso"] }, { situation: "Ganháste a corrida, mas o teu amigo caiu.", emotions: ["Alegre", "Triste"] }, { situation: "Vais mudar de casa para uma cidade diferente.", emotions: ["Triste", "Surpreso"] }, { situation: "Estás a ver um filme de terror com os teus amigos.", emotions: ["Assustado", "Alegre"] }, { situation: "Recebeste o cãozinho que tanto querias.", emotions: ["Alegre", "Calmo"] } ];
+        let selectedMode = 'classico', selectedDifficulty = 'medio', roundsOrder = [], currentRoundIndex = 0, correctAnswer = '', audioContext;
+        function setupAudio() { if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); } }
+        function playSound(type) { if (!audioContext) return; const o = audioContext.createOscillator(), g = audioContext.createGain(); o.connect(g); g.connect(audioContext.destination); g.gain.setValueAtTime(0, audioContext.currentTime); g.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01); if (type === 'correct') { o.type = 'sine'; o.frequency.setValueAtTime(523.25, audioContext.currentTime); } else if (type === 'finish') { o.type = 'triangle'; o.frequency.setValueAtTime(783.99, audioContext.currentTime); } o.start(audioContext.currentTime); g.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.3); o.stop(audioContext.currentTime + 0.3); }
+        function shuffleArray(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
+        function selectOption(type, value) { (type === 'mode' ? document.querySelectorAll('.mode-btn') : document.querySelectorAll('.difficulty-btn')).forEach(btn => btn.classList.remove('selected')); if (type === 'mode') selectedMode = value; else selectedDifficulty = value; document.getElementById(`btn-${value.replace('_', '-')}`).classList.add('selected'); }
+        function startGame() { setupAudio(); currentRoundIndex = 0; const isMixedMode = selectedMode === 'misto' || selectedMode === 'misto_inverso'; if (isMixedMode) { roundsOrder = shuffleArray([...Array(mixedEmotionData.length).keys()]); } else { roundsOrder = shuffleArray(Object.keys(emotionData)); } startScreen.classList.add('hidden'); endScreen.classList.add('hidden'); mainGame.classList.remove('hidden'); displayRound(); }
+        function displayRound() { feedbackText.textContent = ''; optionsGrid.innerHTML = ''; optionsGrid.className = 'grid gap-4 md:gap-6'; questionDisplay.className = 'mb-8 p-6 bg-[var(--card-color)] rounded-2xl shadow-md min-h-[150px] flex items-center justify-center'; if (selectedMode === 'classico') displayClassicRound(); else if (selectedMode === 'inverso') displayInverseRound(); else if (selectedMode === 'misto') displayMistoRound(); else if (selectedMode === 'misto_inverso') displayMistoInversoRound(); }
+        function getOptions(correct, source, count) { shuffleArray(source); const finalOptions = [correct]; for (let i = 0; finalOptions.length < count; i++) { if (source[i] && !finalOptions.includes(source[i])) { finalOptions.push(source[i]); } } return shuffleArray(finalOptions); }
+        function adjustGridLayout(count) { if(count > 3 || (count > 2 && (selectedMode.includes('misto')))) { optionsGrid.classList.add('grid-cols-2'); } else { optionsGrid.classList.add('grid-cols-1', 'md:grid-cols-3'); } }
+        function createCard(content, type) { const card = document.createElement('div'); card.className = 'option-card bg-[var(--card-color)] rounded-2xl shadow-md cursor-pointer'; card.dataset.value = content; if (type === 'text') card.innerHTML = `<p class="text-lg font-medium">${content}</p>`; else card.textContent = content; card.addEventListener('click', () => handleSelection(card)); optionsGrid.appendChild(card); }
+        function handleSelection(card) { const isCorrect = card.dataset.value === correctAnswer; document.querySelectorAll('.option-card').forEach(c => c.style.pointerEvents = 'none'); if (isCorrect) { playSound('correct'); feedbackText.textContent = "Muito bem!"; feedbackText.style.color = 'green'; card.classList.add('correct-answer'); setTimeout(nextStep, 1500); } else { feedbackText.textContent = "Tente outra vez."; feedbackText.style.color = 'orange'; card.classList.add('incorrect-answer'); document.querySelectorAll('.option-card').forEach(c => { if (c.dataset.value === correctAnswer) { c.classList.add('correct-answer'); } }); setTimeout(nextStep, 2500); } }
+        function nextStep() { currentRoundIndex++; if (currentRoundIndex < roundsOrder.length) displayRound(); else endGame(); }
+        function endGame() { playSound('finish'); mainGame.classList.add('hidden'); endScreen.classList.remove('hidden'); }
+        function displayClassicRound() { questionEmoji.classList.remove('hidden'); questionText.classList.add('hidden'); const o = { facil: 2, medio: 3, dificil: 4 }; adjustGridLayout(o[selectedDifficulty]); const correctEmotionName = roundsOrder[currentRoundIndex]; const d = emotionData[correctEmotionName]; correctAnswer = d.situations[Math.floor(Math.random() * d.situations.length)]; let i = Object.values(emotionData).flatMap(e => e.situations).filter(s => s !== correctAnswer); const f = getOptions(correctAnswer, i, o[selectedDifficulty]); questionEmoji.textContent = d.emoji; f.forEach(s => createCard(s, 'text')); }
+        function displayInverseRound() { optionsGrid.classList.add("single-emoji"); questionEmoji.classList.add('hidden'); questionText.classList.remove('hidden'); const o = { facil: 2, medio: 3, dificil: 4 }; adjustGridLayout(o[selectedDifficulty]); const correctEmotionName = roundsOrder[currentRoundIndex]; correctAnswer = emotionData[correctEmotionName].emoji; const s = emotionData[correctEmotionName].situations[Math.floor(Math.random() * emotionData[correctEmotionName].situations.length)]; questionText.textContent = s; let i = Object.values(emotionData).map(e => e.emoji).filter(em => em !== correctAnswer); const f = getOptions(correctAnswer, i, o[selectedDifficulty]); f.forEach(e => createCard(e, 'emoji')); }
+        function displayMistoRound() { optionsGrid.classList.add("pair-emoji"); questionEmoji.classList.add('hidden'); questionText.classList.remove('hidden'); const o = { facil: 2, medio: 3, dificil: 4 }; adjustGridLayout(o[selectedDifficulty]); const r = mixedEmotionData[roundsOrder[currentRoundIndex]]; questionText.textContent = r.situation; const c = r.emotions.map(n => emotionData[n].emoji).sort(); correctAnswer = c.join(' '); let a = Object.values(emotionData).map(e => e.emoji), n = []; while (n.length < o[selectedDifficulty] - 1) { let p = shuffleArray([...a]).slice(0, 2).sort(), s = p.join(' '); if (s !== correctAnswer && !n.includes(s)) n.push(s); } const f = [correctAnswer, ...n]; shuffleArray(f).forEach(p => createCard(p, 'emoji-pair')); }
+        function displayMistoInversoRound() { questionDisplay.classList.add('emoji-pair-question'); questionEmoji.classList.add('hidden'); questionText.classList.remove('hidden'); const o = { facil: 2, medio: 3, dificil: 4 }; adjustGridLayout(o[selectedDifficulty]); const r = mixedEmotionData[roundsOrder[currentRoundIndex]]; correctAnswer = r.situation; const e = r.emotions.map(n => emotionData[n].emoji).sort().join(' '); questionText.textContent = e; let a = mixedEmotionData.map(d => d.situation).concat(Object.values(emotionData).flatMap(e => e.situations)), i = a.filter(s => s !== correctAnswer); const f = getOptions(correctAnswer, i, o[selectedDifficulty]); f.forEach(s => createCard(s, 'text')); }
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', () => { endScreen.classList.add('hidden'); startScreen.classList.remove('hidden'); });
+        document.getElementById('btn-classico').addEventListener('click', () => selectOption('mode', 'classico'));
+        document.getElementById('btn-inverso').addEventListener('click', () => selectOption('mode', 'inverso'));
+        document.getElementById('btn-misto').addEventListener('click', () => selectOption('mode', 'misto'));
+        document.getElementById('btn-misto-inverso').addEventListener('click', () => selectOption('mode', 'misto_inverso'));
+        document.getElementById('btn-facil').addEventListener('click', () => selectOption('difficulty', 'facil'));
+        document.getElementById('btn-medio').addEventListener('click', () => selectOption('difficulty', 'medio'));
+        document.getElementById('btn-dificil').addEventListener('click', () => selectOption('difficulty', 'dificil'));
+        selectOption('mode', 'classico');
+        selectOption('difficulty', 'medio');
+    </script>
+</body>
+</html>
+

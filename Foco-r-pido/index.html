@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foco Rápido - Jogo de Atenção</title>
+    
+    <!-- Tailwind CSS para estilização rápida e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts para uma aparência mais moderna -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tone.js para feedback sonoro sem arquivos de áudio -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <style>
+        /* Estilos personalizados para complementar o Tailwind */
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation; /* Melhora a resposta ao toque em dispositivos móveis */
+        }
+        #game-area {
+            cursor: crosshair;
+            overflow: hidden; /* Garante que o alvo não saia da área de jogo */
+        }
+        #target {
+            /* Transição suave para movimento e mudança de cor */
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+        }
+        /* Efeito de "pulsar" para o botão de iniciar */
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+        .btn-pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl text-center">
+        <!-- Cabeçalho com o título do jogo -->
+        <header class="mb-4">
+            <h1 class="text-4xl md:text-5xl font-bold text-cyan-400">Foco Rápido</h1>
+            <p class="text-gray-400 mt-2 text-lg">Clique no alvo o mais rápido que puder!</p>
+        </header>
+
+        <!-- Painel de status do jogo: Placar e Tempo -->
+        <div class="flex justify-around bg-gray-800 p-4 rounded-lg shadow-lg mb-4 text-2xl">
+            <div>
+                <span class="font-semibold text-yellow-400">Placar:</span>
+                <span id="score" class="font-bold">0</span>
+            </div>
+            <div>
+                <span class="font-semibold text-red-400">Tempo:</span>
+                <span id="time" class="font-bold">30</span>
+            </div>
+        </div>
+
+        <!-- Área principal do jogo -->
+        <div id="game-area" class="relative w-full h-80 md:h-96 bg-gray-800/50 rounded-lg border-2 border-gray-700 shadow-inner">
+            <!-- O alvo que o jogador deve clicar -->
+            <div id="target" class="absolute w-16 h-16 rounded-full bg-cyan-500" style="display: none;"></div>
+            <!-- Mensagem exibida antes e depois do jogo -->
+            <div id="message-box" class="absolute inset-0 flex items-center justify-center">
+                 <p id="message" class="text-2xl font-semibold text-gray-300"></p>
+            </div>
+        </div>
+
+        <!-- Botão para iniciar ou reiniciar o jogo -->
+        <div class="mt-6">
+            <button id="start-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-lg text-xl shadow-md transition-transform transform hover:scale-105 btn-pulse">
+                Começar!
+            </button>
+        </div>
+        
+        <!-- Rodapé -->
+        <footer class="mt-8 text-sm text-gray-500">
+            <p>Criado para ajudar a exercitar o foco e a atenção.</p>
+        </footer>
+    </div>
+
+    <script>
+        // --- Elementos do DOM ---
+        const scoreEl = document.getElementById('score');
+        const timeEl = document.getElementById('time');
+        const gameArea = document.getElementById('game-area');
+        const target = document.getElementById('target');
+        const startBtn = document.getElementById('start-btn');
+        const message = document.getElementById('message');
+        const messageBox = document.getElementById('message-box');
+
+        // --- Variáveis do Jogo ---
+        let score = 0;
+        let timeLeft = 30;
+        const GAME_DURATION = 30; // Duração do jogo em segundos
+        let gameInterval = null;
+        let timerInterval = null;
+        let isPlaying = false;
+        
+        // --- Sintetizador para Feedback Sonoro ---
+        // Cria um sintetizador simples para tocar um som ao acertar o alvo.
+        // Isso evita a necessidade de carregar arquivos de áudio externos.
+        const synth = new Tone.Synth().toDestination();
+        const C4 = "C4"; // Nota a ser tocada
+
+        // --- Funções do Jogo ---
+
+        /**
+         * Inicia o jogo, reinicia as variáveis e começa os contadores.
+         */
+        function startGame() {
+            if (isPlaying) return; // Previne múltiplos inícios
+            isPlaying = true;
+
+            // Reinicia o estado do jogo
+            score = 0;
+            timeLeft = GAME_DURATION;
+            scoreEl.textContent = score;
+            timeEl.textContent = timeLeft;
+
+            // Prepara a UI para o jogo
+            startBtn.style.display = 'none'; // Esconde o botão de início
+            messageBox.style.display = 'none'; // Esconde a mensagem
+            target.style.display = 'block'; // Mostra o alvo
+
+            // Inicia os loops do jogo
+            moveTarget(); // Move o alvo para a primeira posição
+            timerInterval = setInterval(updateTimer, 1000); // Inicia o contador de tempo
+            
+            // Toca um som para indicar o início do jogo
+            Tone.context.resume().then(() => {
+                synth.triggerAttackRelease("E4", "8n");
+            });
+        }
+
+        /**
+         * Finaliza o jogo, limpa os intervalos e exibe a pontuação final.
+         */
+        function endGame() {
+            isPlaying = false;
+            
+            // Para os loops do jogo
+            clearInterval(timerInterval);
+            
+            // Atualiza a UI para o estado de fim de jogo
+            target.style.display = 'none'; // Esconde o alvo
+            message.textContent = `Fim de Jogo! Placar: ${score}`;
+            messageBox.style.display = 'flex';
+            startBtn.textContent = 'Jogar Novamente';
+            startBtn.style.display = 'block';
+             
+            // Toca um som de fim de jogo
+            synth.triggerAttackRelease("C3", "4n");
+        }
+
+        /**
+         * Atualiza o contador de tempo a cada segundo.
+         */
+        function updateTimer() {
+            timeLeft--;
+            timeEl.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        /**
+         * Move o alvo para uma posição aleatória dentro da área de jogo.
+         */
+        function moveTarget() {
+            if (!isPlaying) return;
+
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const targetSize = target.offsetWidth;
+
+            // Calcula a posição aleatória, garantindo que o alvo fique dentro dos limites
+            const randomX = Math.random() * (gameAreaRect.width - targetSize);
+            const randomY = Math.random() * (gameAreaRect.height - targetSize);
+            
+            // Define a nova posição
+            target.style.left = `${randomX}px`;
+            target.style.top = `${randomY}px`;
+            
+            // Muda a cor do alvo aleatoriamente para manter o estímulo visual
+            const randomColor = `hsl(${Math.random() * 360}, 80%, 60%)`;
+            target.style.backgroundColor = randomColor;
+        }
+
+        /**
+         * Função chamada quando o jogador clica no alvo.
+         */
+        function handleTargetClick() {
+            if (!isPlaying) return;
+            
+            score++;
+            scoreEl.textContent = score;
+            
+            // Toca um som de confirmação
+            synth.triggerAttackRelease(C4, "16n");
+            
+            // Dá um efeito visual de "acerto"
+            target.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                target.style.transform = 'scale(1)';
+                moveTarget(); // Move o alvo para a próxima posição
+            }, 100);
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        target.addEventListener('click', handleTargetClick);
+        
+        // Mensagem inicial
+        message.textContent = "Prepare-se para focar!";
+    </script>
+
+</body>
+</html>
+
