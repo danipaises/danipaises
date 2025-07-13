@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo da Cobrinha - Estilo Nokia</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Estilo customizado para a estética "Nokia" */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #0a191e; /* Fundo escuro */
+            color: #c7f0d8; /* Cor do texto "tela" */
+            touch-action: manipulation; /* Desabilita zoom com duplo toque nos botões */
+        }
+        .nokia-screen {
+            background-color: #c7f0d8; /* Fundo da "tela" do jogo */
+            border: 20px solid #2c3e50; /* Borda grossa simulando o aparelho */
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5) inset, 0 5px 15px rgba(0,0,0,0.3);
+        }
+        canvas {
+            background-color: #c7f0d8; /* A cor do canvas é a mesma da tela */
+            display: block;
+        }
+        .nokia-text {
+            color: #0a191e; /* Cor dos elementos do jogo (cobra, comida, texto) */
+        }
+        .nokia-button {
+            background-color: #7f8c8d;
+            border: 2px solid #2c3e50;
+            border-radius: 8px;
+            color: #ecf0f1;
+            box-shadow: 0 4px #34495e;
+            user-select: none; /* Impede a seleção de texto no botão */
+            transition: all 0.1s ease-in-out;
+        }
+        .nokia-button:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 #34495e;
+        }
+        #gameOverModal {
+            font-family: 'Press Start 2P', cursive;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Container principal que simula o celular -->
+    <div class="nokia-screen w-full max-w-sm p-4 flex flex-col items-center">
+
+        <!-- Título e Placar -->
+        <div class="w-full text-center mb-4 nokia-text">
+            <h1 class="text-xl uppercase">Cobrinha</h1>
+            <p class="text-lg mt-2">PLACAR: <span id="score">0</span></p>
+        </div>
+
+        <!-- Canvas do Jogo -->
+        <canvas id="gameCanvas" class="border-2 border-dashed border-gray-600 rounded-md"></canvas>
+
+        <!-- Controles -->
+        <div class="grid grid-cols-3 gap-3 mt-6 w-4/5 max-w-xs">
+            <div></div>
+            <button id="upBtn" class="nokia-button p-4 text-2xl" aria-label="Mover para Cima">↑</button>
+            <div></div>
+            <button id="leftBtn" class="nokia-button p-4 text-2xl" aria-label="Mover para Esquerda">←</button>
+            <button id="downBtn" class="nokia-button p-4 text-2xl" aria-label="Mover para Baixo">↓</button>
+            <button id="rightBtn" class="nokia-button p-4 text-2xl" aria-label="Mover para Direita">→</button>
+        </div>
+    </div>
+
+    <!-- Modal de Fim de Jogo (escondido por padrão) -->
+    <div id="gameOverModal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex flex-col justify-center items-center text-center p-4">
+        <h2 class="text-3xl text-red-500">FIM DE JOGO</h2>
+        <p class="text-xl mt-4">Seu placar foi: <span id="finalScore">0</span></p>
+        <button id="restartBtn" class="mt-8 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg text-xl">
+            Jogar Novamente
+        </button>
+    </div>
+
+    <script>
+        // --- Configurações do Jogo ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scoreEl = document.getElementById('score');
+        const finalScoreEl = document.getElementById('finalScore');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const restartBtn = document.getElementById('restartBtn');
+
+        // Botões de controle
+        const upBtn = document.getElementById('upBtn');
+        const downBtn = document.getElementById('downBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+
+        // Carregando a imagem da fruta
+        const foodImage = new Image();
+        foodImage.src = 'https://gcdnb.pbrd.co/images/6Z4poOg2Cvru.jpg?o';
+        let useFallbackFood = false;
+        foodImage.onerror = () => {
+            console.error("Erro ao carregar a imagem da fruta. Usando fallback de cor.");
+            useFallbackFood = true;
+        };
+
+
+        const gridSize = 20; // Tamanho de cada "pixel" do jogo
+        let canvasSize;
+
+        // --- Estado do Jogo ---
+        let snake;
+        let food;
+        let direction;
+        let score;
+        let isGameOver;
+        let gameLoopInterval;
+        let changingDirection;
+
+        // Cores no estilo Nokia
+        const SNAKE_COLOR = '#0a191e';
+        const FOOD_COLOR = '#d63031'; // Cor do fallback da comida
+
+        // --- Funções do Jogo ---
+
+        /**
+         * Ajusta o tamanho do canvas para ser um quadrado responsivo
+         */
+        function setupCanvas() {
+            const screenWrapper = document.querySelector('.nokia-screen');
+            // Calcula o tamanho baseado na largura do container, menos o padding
+            const padding = 32; // 1rem (16px) de padding em cada lado = 32px
+            let size = screenWrapper.offsetWidth - padding;
+            // Garante que o tamanho é múltiplo do tamanho da grade
+            size = Math.floor(size / gridSize) * gridSize;
+            canvasSize = size;
+            canvas.width = canvasSize;
+            canvas.height = canvasSize;
+        }
+
+        /**
+         * Inicializa ou reinicia o estado do jogo
+         */
+        function initGame() {
+            snake = [
+                { x: Math.floor(canvasSize / gridSize / 2) * gridSize, y: Math.floor(canvasSize / gridSize / 2) * gridSize }
+            ];
+            direction = { x: 0, y: 0 }; // Começa parada
+            score = 0;
+            isGameOver = false;
+            changingDirection = false;
+            scoreEl.innerText = score;
+            generateFood();
+            gameOverModal.classList.add('hidden');
+
+            if (gameLoopInterval) clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(gameLoop, 150); // Velocidade do jogo
+        }
+
+        /**
+         * Gera uma nova comida em uma posição aleatória
+         */
+        function generateFood() {
+            food = {
+                x: Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize,
+                y: Math.floor(Math.random() * (canvasSize / gridSize)) * gridSize
+            };
+
+            // Se a comida aparecer na cobra, gera de novo
+            for (let segment of snake) {
+                if (segment.x === food.x && segment.y === food.y) {
+                    generateFood();
+                    break;
+                }
+            }
+        }
+
+        /**
+         * Desenha um retângulo no canvas (segmento da cobra ou comida de fallback)
+         */
+        function drawRect(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, gridSize, gridSize);
+        }
+
+        /**
+         * Limpa o canvas e desenha todos os elementos do jogo
+         */
+        function draw() {
+            // Limpa o canvas com a cor de fundo
+            ctx.clearRect(0, 0, canvasSize, canvasSize);
+
+            // Desenha a cobra
+            snake.forEach(segment => drawRect(segment.x, segment.y, SNAKE_COLOR));
+
+            // Desenha a comida (imagem ou fallback)
+            if (!useFallbackFood && foodImage.complete && foodImage.naturalHeight !== 0) {
+                ctx.drawImage(foodImage, food.x, food.y, gridSize, gridSize);
+            } else {
+                // Fallback se a imagem não carregar ou se houver erro
+                drawRect(food.x, food.y, FOOD_COLOR);
+            }
+        }
+
+        /**
+         * Move a cobra na direção atual
+         */
+        function moveSnake() {
+            if (direction.x === 0 && direction.y === 0) return; // Não move se está parada
+
+            const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+            snake.unshift(head); // Adiciona a nova cabeça
+
+            // Checa se comeu a comida
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                scoreEl.innerText = score;
+                generateFood();
+            } else {
+                snake.pop(); // Remove a cauda se não comeu
+            }
+        }
+
+        /**
+         * Verifica colisões com paredes ou com o próprio corpo
+         */
+        function checkCollision() {
+            const head = snake[0];
+
+            // Colisão com as paredes
+            if (head.x < 0 || head.x >= canvasSize || head.y < 0 || head.y >= canvasSize) {
+                endGame();
+            }
+
+            // Colisão com o próprio corpo
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    endGame();
+                    break;
+                }
+            }
+        }
+
+        /**
+         * Termina o jogo
+         */
+        function endGame() {
+            isGameOver = true;
+            clearInterval(gameLoopInterval);
+            finalScoreEl.innerText = score;
+            gameOverModal.classList.remove('hidden');
+        }
+
+        /**
+         * O loop principal do jogo, que atualiza e desenha o estado a cada frame
+         */
+        function gameLoop() {
+            if (isGameOver) return;
+
+            changingDirection = false; // Permite nova mudança de direção
+            moveSnake();
+            checkCollision();
+            draw();
+        }
+
+        /**
+         * Lida com a entrada dos controles (teclado e botões)
+         */
+        function changeDirection(newDirection) {
+            // Impede a cobra de inverter a direção sobre si mesma
+            // Impede múltiplas mudanças de direção no mesmo "tick"
+            if (changingDirection) return;
+
+            const isGoingUp = direction.y === -gridSize;
+            const isGoingDown = direction.y === gridSize;
+            const isGoingRight = direction.x === gridSize;
+            const isGoingLeft = direction.x === -gridSize;
+
+            if (newDirection === 'UP' && !isGoingDown) {
+                direction = { x: 0, y: -gridSize };
+            } else if (newDirection === 'DOWN' && !isGoingUp) {
+                direction = { x: 0, y: gridSize };
+            } else if (newDirection === 'LEFT' && !isGoingRight) {
+                direction = { x: -gridSize, y: 0 };
+            } else if (newDirection === 'RIGHT' && !isGoingLeft) {
+                direction = { x: gridSize, y: 0 };
+            }
+            changingDirection = true;
+        }
+
+        // --- Event Listeners ---
+
+        // Controles por teclado para desktop
+        document.addEventListener('keydown', (e) => {
+            switch (e.key) {
+                case 'ArrowUp':
+                case 'w':
+                    changeDirection('UP');
+                    break;
+                case 'ArrowDown':
+                case 's':
+                    changeDirection('DOWN');
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                    changeDirection('LEFT');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                    changeDirection('RIGHT');
+                    break;
+            }
+        });
+
+        // Controles por toque/clique
+        upBtn.addEventListener('click', () => changeDirection('UP'));
+        downBtn.addEventListener('click', () => changeDirection('DOWN'));
+        leftBtn.addEventListener('click', () => changeDirection('LEFT'));
+        rightBtn.addEventListener('click', () => changeDirection('RIGHT'));
+        
+        // Botão de reiniciar
+        restartBtn.addEventListener('click', () => {
+            setupCanvas();
+            initGame();
+        });
+
+        // Redimensionamento da janela
+        window.addEventListener('resize', () => {
+            setupCanvas();
+            // Para não quebrar o jogo ao redimensionar, o ideal é resetar.
+            if (!isGameOver) {
+                endGame();
+            }
+        });
+
+        // --- Início ---
+        // Espera a página carregar completamente para garantir as dimensões corretas
+        window.onload = () => {
+            setupCanvas();
+            initGame();
+        };
+    </script>
+</body>
+</html>
+
