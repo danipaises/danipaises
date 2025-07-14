@@ -45,12 +45,19 @@
                 display: none;
             }
         }
+        /* Estilos para o Modal */
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body class="text-gray-700">
 
     <!-- Cabeçalho -->
-    <header class="bg-white shadow-md sticky top-0 z-50">
+    <header class="bg-white shadow-md sticky top-0 z-40">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="#" class="text-xl md:text-2xl font-extrabold text-gray-800">Dani Países <span class="text-blue-600">Store Web</span></a>
             <div class="hidden md:flex items-center space-x-8">
@@ -92,28 +99,17 @@
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Nossos Serviços</h2>
                     <p class="text-gray-600 mt-2 max-w-2xl mx-auto">Soluções completas para você marcar presença online de forma profissional e eficiente.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:max-w-4xl mx-auto gap-8">
-                    <!-- Card Site de Perfil Profissional -->
+                <!-- Grid de Serviços -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <!-- Card Perfil Profissional / Portfólio -->
                     <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
                         <div>
-                            <div class="text-blue-600 mb-4"><i class="fas fa-user-tie fa-3x"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Site de Perfil Profissional</h3>
+                            <div class="text-blue-600 mb-4"><i class="fas fa-address-card fa-3x"></i></div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">Perfil Profissional / Portfólio</h3>
                             <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 30,00</p>
-                            <p class="text-gray-600 mb-6">Destaque suas habilidades, experiências e portfólio com um site elegante que funciona como seu currículo online.</p>
+                            <p class="text-gray-600 mb-6">Uma página única para apresentar seu trabalho, currículo e reunir todos os seus links importantes. Ideal para profissionais e criadores de conteúdo.</p>
                         </div>
-                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Site%20de%20Perfil%20Profissional." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
-                           Contratar Serviço
-                        </a>
-                    </div>
-                     <!-- Card Agregador de Links -->
-                    <div class="service-card bg-gray-50 p-8 rounded-lg shadow-sm transition duration-300">
-                        <div>
-                            <div class="text-blue-600 mb-4"><i class="fas fa-link fa-3x"></i></div>
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Agregador de Links</h3>
-                            <p class="text-2xl font-bold text-gray-900 mb-4">A partir de R$ 30,00</p>
-                            <p class="text-gray-600 mb-6">Reúna todos os seus links importantes (redes sociais, portfólio, WhatsApp) em uma única página. Ideal para a bio de redes sociais.</p>
-                        </div>
-                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Agregador%20de%20Links." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
+                        <a href="https://wa.me/5522992217505?text=Olá!%20Tenho%20interesse%20em%20um%20Site%20de%20Perfil%20Profissional/Portfólio." target="_blank" rel="noopener noreferrer" class="mt-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-center transition duration-300">
                            Contratar Serviço
                         </a>
                     </div>
@@ -141,6 +137,12 @@
                            Contratar Serviço
                         </a>
                     </div>
+                </div>
+                <!-- Botão para abrir o Portfólio -->
+                <div class="text-center mt-16">
+                    <button id="open-portfolio-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                        <i class="fas fa-folder-open mr-2"></i> Ver Portfólio de Exemplos
+                    </button>
                 </div>
             </div>
         </section>
@@ -201,13 +203,126 @@
         </div>
     </footer>
 
+    <!-- Modal de Exemplos -->
+    <div id="examples-modal" class="modal-overlay fixed inset-0 bg-black bg-opacity-60 hidden items-center justify-center z-50 p-4">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-full transform scale-95">
+             <div class="flex justify-between items-center p-5 border-b sticky top-0 bg-white z-10">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800">Nosso Portfólio de Exemplos</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-900 text-3xl leading-none">&times;</button>
+            </div>
+            <div id="modal-body" class="p-6 overflow-y-auto" style="max-height: 75vh;">
+                <!-- Conteúdo dos exemplos será injetado aqui pelo JavaScript -->
+            </div>
+        </div>
+    </div>
+
+
     <script>
+        // --- Script do Menu Mobile ---
         const mobileMenuButton = document.getElementById('mobile-menu-button');
         const mobileMenu = document.getElementById('mobile-menu');
 
         mobileMenuButton.addEventListener('click', () => {
             mobileMenu.classList.toggle('hidden');
         });
+
+        // --- Script do Modal de Exemplos ---
+        const openPortfolioBtn = document.getElementById('open-portfolio-btn');
+        const closeModalButton = document.getElementById('close-modal-btn');
+        const modal = document.getElementById('examples-modal');
+        const modalContent = modal.querySelector('.modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+
+        // Objeto com as informações dos exemplos para cada serviço
+        const examples = {
+            portfolio: {
+                title: 'Perfil Profissional e Portfólio',
+                sites: [
+                    { name: 'Perfil para as redes sociais (site do criador)', url: 'https://danipaises.github.io/', img: 'https://placehold.co/400x300/e2e8f0/4a5568?text=Perfil+Social' },
+                    { name: 'Delivery de produtos mineiros', url: 'https://uaipimdavila.github.io/', img: 'https://placehold.co/400x300/e2e8f0/4a5568?text=Delivery+Mineiro' },
+                    { name: 'Portfólio de cantor', url: 'https://danipaises.github.io/alvaro-Mattos-/', img: 'https://placehold.co/400x300/dbeafe/1e40af?text=Portfólio+de+Cantor' },
+                    { name: 'Site de aulas de reforço', url: 'https://trilha-do-conhecimento.github.io/Trilha-do-Conhecimento/', img: 'https://placehold.co/400x300/dbeafe/1e40af?text=Aulas+de+Reforço' },
+                ]
+            },
+            games: {
+                title: 'Sites de Jogos',
+                sites: [
+                    { name: 'Jogo Estilo Flappy Bird', url: 'https://danipaises.github.io/Flappy-Dani-paises-/', img: 'https://placehold.co/400x300/1f2937/9ca3af?text=Jogo+Flappy+Bird' },
+                    { name: 'Jogo das Classes Gramaticais', url: 'https://trilha-do-conhecimento.github.io/Jogo-das-classes-gramaticais/', img: 'https://placehold.co/400x300/1f2937/9ca3af?text=Jogo+Gramatical' },
+                ]
+            }
+        };
+
+        // Função para abrir o modal com todos os exemplos
+        function openPortfolioModal() {
+            modalBody.innerHTML = ''; // Limpa o conteúdo anterior
+
+            // Itera sobre cada categoria de exemplo
+            for (const key in examples) {
+                const category = examples[key];
+                
+                // Cria o título da categoria
+                const categoryTitle = document.createElement('h4');
+                categoryTitle.className = 'text-xl md:text-2xl font-bold text-gray-800 mt-6 mb-4 border-b pb-2 first:mt-0';
+                categoryTitle.textContent = category.title;
+                modalBody.appendChild(categoryTitle);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-6';
+
+                // Cria os cards para cada site de exemplo dentro da categoria
+                category.sites.forEach(site => {
+                    const siteCardHTML = `
+                        <a href="${site.url}" target="_blank" rel="noopener noreferrer" class="group block border rounded-lg hover:shadow-lg transition-shadow duration-300 overflow-hidden">
+                            <div class="overflow-hidden">
+                                 <img src="${site.img}" alt="${site.name}" class="rounded-t-lg w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" onerror="this.onerror=null;this.src='https://placehold.co/400x300/cccccc/ffffff?text=Imagem+Indisponível';">
+                            </div>
+                            <p class="p-4 font-semibold text-gray-700 bg-gray-50">${site.name}</p>
+                        </a>
+                    `;
+                    grid.innerHTML += siteCardHTML;
+                });
+                modalBody.appendChild(grid);
+            }
+
+            modal.classList.remove('hidden');
+            // Força o navegador a aplicar a transição
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modalContent.classList.remove('scale-95');
+            }, 10);
+        }
+
+        // Função para fechar o modal
+        function closeModal() {
+            modal.classList.add('opacity-0');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300); // Espera a transição terminar
+        }
+
+        // Adiciona o evento de clique para o botão principal do portfólio
+        openPortfolioBtn.addEventListener('click', openPortfolioModal);
+
+        // Adiciona o evento de clique para o botão de fechar
+        closeModalButton.addEventListener('click', closeModal);
+
+        // Adiciona o evento de clique para fechar o modal ao clicar no fundo (overlay)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Adiciona o evento para fechar o modal com a tecla 'Escape'
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape" && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
     </script>
 
 </body>
