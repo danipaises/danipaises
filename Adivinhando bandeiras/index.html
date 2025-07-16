@@ -155,7 +155,7 @@
                     <span>Acertos: <span id="score">0</span></span>
                     <span>Erros: <span id="errors">0</span></span>
                  </div>
-                 <button id="view-leaderboard-button" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm">Ver Recordes do Modo</button>
+                 <button id="view-leaderboard-button" class="mt-2 text-indigo-600 hover:text-indigo-800 font-semibold text-sm">Ver e Salvar Recordes do Modo</button>
             </header>
 
             <main id="game-area" class="flex-grow flex flex-col justify-center min-h-0 py-2">
@@ -401,7 +401,12 @@
             const leaderboardPath = `public/leaderboard-${gameMode}`;
             const currentLeaderboardRef = ref(db, leaderboardPath);
             if (!db || !currentLeaderboardRef) { showToast("Erro ao salvar. Verifique a sua ligação.", true); return false; }
-            if (score === 0 && errors === 0) { return false; }
+            if (score === 0 && errors === 0) { 
+                if(gameMode.startsWith('timed')) {
+                    showToast("Placar de 0 não foi salvo.");
+                }
+                return false; 
+            }
             try {
                 await push(currentLeaderboardRef, { name: nameToCheck, score, errors, timestamp: serverTimestamp() });
                 showToast("Seu recorde foi salvo!");
@@ -525,7 +530,11 @@
             playerNameInput.value = '';
         });
         
-        viewLeaderboardButton.addEventListener('click', () => {
+        viewLeaderboardButton.addEventListener('click', async () => {
+            // **ALTERAÇÃO APLICADA AQUI**
+            if (gameMode === 'classic') {
+                await saveCurrentScore();
+            }
             listenForLeaderboardUpdates();
             openLeaderboardModal();
         });
