@@ -187,17 +187,6 @@
     <!-- Container dos Modais e Notificações -->
     <div id="overlays" class="modal-container">
         <div id="toast-notification" class="fixed bottom-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg hidden opacity-0"></div>
-        <div id="continue-game-modal" class="hidden fixed inset-0 items-center justify-center">
-            <div class="modal-backdrop"></div>
-            <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-                <h3 class="text-xl font-bold text-gray-800">Jogo Guardado Encontrado</h3>
-                <p class="text-gray-600 my-4">Deseja continuar o seu jogo anterior ou começar um novo?</p>
-                <div class="flex justify-center space-x-4">
-                    <button id="continue-saved-game-button" class="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">Continuar Jogo</button>
-                    <button id="start-new-game-button" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Novo Jogo</button>
-                </div>
-            </div>
-        </div>
         <div id="leaderboard-modal" class="hidden fixed inset-0 items-center justify-center">
             <div class="modal-backdrop"></div>
             <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-lg max-h-[80vh] flex flex-col">
@@ -248,12 +237,9 @@
         const closeLeaderboardButton = document.getElementById('close-leaderboard-button');
         const backgroundContainer = document.getElementById('background-animation');
         const toastElement = document.getElementById('toast-notification');
-        const continueGameModal = document.getElementById('continue-game-modal');
-        const continueSavedGameButton = document.getElementById('continue-saved-game-button');
-        const startNewGameButton = document.getElementById('start-new-game-button');
         
         // --- CONFIGURAÇÃO DO FIREBASE ---
-        let db, auth;
+        let db;
         const firebaseConfig = {
           apiKey: "AIzaSyB9uHMtQAejetcLZYJJLWsMmDIAJlIubq0",
           authDomain: "dani-paises-record.firebaseapp.com",
@@ -263,27 +249,18 @@
           messagingSenderId: "453701705796",
           appId: "1:453701705796:web:1209d91652671849ce9c11"
         };
-        let activeGamesRef;
         let nameToCheck = '';
-        let savedGameData = null;
 
         async function initializeFirebase() {
-            if (!firebaseConfig.apiKey) { 
-                startMessage.textContent = "Erro de Configuração do Firebase.";
-                startGameButton.classList.add('bg-red-500');
-                console.error("A apiKey do Firebase não foi definida."); 
-                return; 
-            }
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getDatabase(app);
-                auth = getAuth(app);
+                const auth = getAuth(app);
                 await signInAnonymously(auth);
-                activeGamesRef = ref(db, `public/activeGames`);
                 startGameButton.disabled = false;
                 startGameButton.textContent = "Iniciar Jogo";
             } catch (error) { 
-                startMessage.textContent = "Erro de Ligação. Verifique a apiKey.";
+                startMessage.textContent = "Erro de Ligação. Verifique a consola.";
                 startGameButton.classList.add('bg-red-500');
                 console.error("Erro ao inicializar o Firebase:", error); 
             }
@@ -297,72 +274,10 @@
         let score, errors, currentCorrectAnswer, answerLocked, gameMode, timerInterval, timeRemaining;
         let unseenCountries = [], currentRoundOptions = [];
 
-        async function saveGameState() {
-            if (!currentPlayerName || !activeGamesRef) return;
-            const state = { gameMode, score, errors, unseenCountries, currentCorrectAnswer, currentRoundOptions, answerLocked, resultText: resultElement.textContent, resultClassName: resultElement.className, flagUrl: flagImageElement.src, timeRemaining };
-            const playerGameRef = ref(db, `${activeGamesRef.path}/${currentPlayerName}`);
-            await set(playerGameRef, state);
-        }
-
-        async function clearGameState() {
-            if (!currentPlayerName || !activeGamesRef) return;
-            const playerGameRef = ref(db, `${activeGamesRef.path}/${currentPlayerName}`);
-            await remove(playerGameRef);
-        }
-
-        function loadGameState(savedState) {
-            currentPlayerName = savedState.currentPlayerName;
-            gameMode = savedState.gameMode;
-            score = savedState.score;
-            errors = savedState.errors;
-            unseenCountries = savedState.unseenCountries || [];
-            playerDisplay.textContent = currentPlayerName;
-            updateScoreboard();
-            startScreen.classList.add('hidden');
-            modeSelectionScreen.classList.add('hidden');
-            difficultySelectionScreen.classList.add('hidden');
-            gameContainer.classList.add('flex');
-            gameContainer.classList.remove('hidden');
-            renderSavedRound(savedState);
-        }
-
-        function renderSavedRound(round) {
-            if(gameMode.startsWith('timed')){
-                startTimer(round.timeRemaining || 0);
-            } else {
-                timerDisplay.classList.add('hidden');
-            }
-            currentCorrectAnswer = round.currentCorrectAnswer;
-            currentRoundOptions = round.currentRoundOptions || [];
-            answerLocked = round.answerLocked;
-            flagImageElement.src = round.flagUrl;
-            optionsContainer.innerHTML = '';
-            currentRoundOptions.forEach(name => {
-                const button = document.createElement('button');
-                button.textContent = name;
-                button.classList.add('option-button', 'w-full', 'p-3', 'text-sm', 'sm:p-4', 'sm:text-base', 'border-2', 'border-gray-300', 'rounded-lg', 'font-semibold', 'text-gray-700', 'hover:bg-gray-200', 'focus:outline-none');
-                button.onclick = () => checkAnswer(button);
-                if (answerLocked) {
-                    if (name === currentCorrectAnswer) button.classList.add('correct');
-                    else if (round.resultText.startsWith('Errado')) {
-                         const buttons = Array.from(optionsContainer.children);
-                         const selectedBtn = buttons.find(b => b.textContent === name);
-                         if(selectedBtn) selectedBtn.classList.add('incorrect');
-                    }
-                }
-                optionsContainer.appendChild(button);
-            });
-            if (answerLocked) {
-                resultElement.textContent = round.resultText;
-                resultElement.className = round.resultClassName;
-                nextButton.classList.remove('hidden');
-            }
-        }
-
         function initializeGame(name, mode, timeLimit = null) {
-            currentPlayerName = name.toUpperCase();
+            nameToCheck = name.toUpperCase();
             gameMode = mode;
-            playerDisplay.textContent = currentPlayerName;
+            playerDisplay.textContent = nameToCheck;
             startScreen.classList.add('hidden');
             modeSelectionScreen.classList.add('hidden');
             difficultySelectionScreen.classList.add('hidden');
@@ -415,7 +330,7 @@
             timerInterval = setInterval(updateTimer, 1000);
         }
 
-        async function newRound() {
+        function newRound() {
             if (unseenCountries.length === 0 && gameMode === 'classic') {
                 showEndGameScreen();
                 return;
@@ -442,10 +357,9 @@
                 button.onclick = () => checkAnswer(button);
                 optionsContainer.appendChild(button);
             });
-            await saveGameState();
         }
 
-        async function checkAnswer(selectedButton) {
+        function checkAnswer(selectedButton) {
             if (answerLocked) return;
             answerLocked = true;
             const isCorrect = selectedButton.textContent === currentCorrectAnswer;
@@ -467,7 +381,6 @@
             } else {
                 nextButton.classList.remove('hidden');
             }
-            await saveGameState();
         }
 
         function updateScoreboard() {
@@ -482,7 +395,6 @@
             endGameTitle.textContent = timeUp ? "O Tempo Acabou!" : "Fim de Jogo!";
             finalScoreElement.textContent = `Seu placar final: ${score} acertos e ${errors} erros.`;
             await saveCurrentScore();
-            await clearGameState();
         }
         
         async function saveCurrentScore() {
@@ -491,14 +403,14 @@
             if (!db || !currentLeaderboardRef) { showToast("Erro ao salvar. Verifique a sua ligação.", true); return false; }
             if (score === 0 && errors === 0) { return false; }
             try {
-                await push(currentLeaderboardRef, { name: currentPlayerName, score, errors, timestamp: serverTimestamp() });
+                await push(currentLeaderboardRef, { name: nameToCheck, score, errors, timestamp: serverTimestamp() });
                 showToast("Seu recorde foi salvo!");
                 return true;
             } catch (error) { showToast("Erro ao salvar o recorde.", true); return false; }
         }
         
         function listenForLeaderboardUpdates() {
-            if (!gameMode) return;
+            if (!gameMode || !db) return;
             const leaderboardPath = `public/leaderboard-${gameMode}`;
             const currentLeaderboardRef = ref(db, leaderboardPath);
             
@@ -567,29 +479,10 @@
             }
         }
         
-        async function handleNameSubmission(name) {
-            if (!activeGamesRef) {
-                showToast("A ligar à base de dados... Tente novamente.", true);
-                return;
-            }
+        function handleNameSubmission(name) {
             nameToCheck = name;
-            const playerGameRef = ref(db, `${activeGamesRef.path}/${name}`);
-            
-            try {
-                const activeGameSnapshot = await get(playerGameRef);
-                if (activeGameSnapshot.exists()) {
-                    savedGameData = activeGameSnapshot.val();
-                    openContinueGameModal();
-                } else {
-                    startScreen.classList.add('hidden');
-                    modeSelectionScreen.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Erro ao verificar nome:", error);
-                showToast("Erro de ligação. A iniciar offline.", true);
-                startScreen.classList.add('hidden');
-                modeSelectionScreen.classList.remove('hidden');
-            }
+            startScreen.classList.add('hidden');
+            modeSelectionScreen.classList.remove('hidden');
         }
 
         // --- EVENT LISTENERS ---
@@ -600,9 +493,7 @@
         });
 
         anonymousButton.addEventListener('click', () => { 
-            nameToCheck = 'ANÓNIMO';
-            startScreen.classList.add('hidden');
-            modeSelectionScreen.classList.remove('hidden');
+            handleNameSubmission('ANÓNIMO');
         });
 
         document.getElementById('timed-mode-button').addEventListener('click', () => {
@@ -617,19 +508,6 @@
                 initializeGame(nameToCheck, mode, time);
             });
         });
-
-        continueSavedGameButton.addEventListener('click', () => {
-            closeContinueGameModal();
-            loadGameState({ ...savedGameData, currentPlayerName: nameToCheck });
-        });
-
-        startNewGameButton.addEventListener('click', async () => {
-            closeContinueGameModal();
-            const playerGameRef = ref(db, `${activeGamesRef.path}/${nameToCheck}`);
-            await remove(playerGameRef);
-            startScreen.classList.add('hidden');
-            modeSelectionScreen.classList.remove('hidden');
-        });
         
         nextButton.addEventListener('click', newRound);
         
@@ -640,8 +518,7 @@
             finalSaveScoreButton.textContent = "Salvo!";
         });
         
-        restartButton.addEventListener('click', async () => {
-            await clearGameState();
+        restartButton.addEventListener('click', () => {
             gameContainer.classList.add('hidden');
             endGameScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
@@ -655,8 +532,6 @@
         
         function openLeaderboardModal() { leaderboardModal.classList.add('flex'); leaderboardModal.classList.remove('hidden'); }
         function closeLeaderboardModal() { leaderboardModal.classList.add('hidden'); leaderboardModal.classList.remove('flex'); }
-        function openContinueGameModal() { continueGameModal.classList.add('flex'); continueGameModal.classList.remove('hidden'); }
-        function closeContinueGameModal() { continueGameModal.classList.add('hidden'); continueGameModal.classList.remove('flex'); }
         
         closeLeaderboardButton.addEventListener('click', closeLeaderboardModal);
 
