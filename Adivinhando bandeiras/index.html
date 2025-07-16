@@ -254,7 +254,6 @@
         
         // --- CONFIGURAÇÃO DO FIREBASE ---
         let db, auth;
-        // **CÓDIGO SUBSTITUÍDO**
         const firebaseConfig = {
           apiKey: "AIzaSyB9uHMtQAejetcLZYJJLWsMmDIAJlIubq0",
           authDomain: "dani-paises-record.firebaseapp.com",
@@ -270,9 +269,9 @@
 
         async function initializeFirebase() {
             if (!firebaseConfig.apiKey) { 
-                startMessage.textContent = "Erro de Configuração. Tente mais tarde.";
+                startMessage.textContent = "Erro de Configuração do Firebase.";
                 startGameButton.classList.add('bg-red-500');
-                console.error("Configuração do Firebase não encontrada."); 
+                console.error("A apiKey do Firebase não foi definida."); 
                 return; 
             }
             try {
@@ -280,11 +279,11 @@
                 db = getDatabase(app);
                 auth = getAuth(app);
                 await signInAnonymously(auth);
-                activeGamesRef = ref(db, `public/data/activeGames`);
+                activeGamesRef = ref(db, `public/activeGames`);
                 startGameButton.disabled = false;
                 startGameButton.textContent = "Iniciar Jogo";
             } catch (error) { 
-                startMessage.textContent = "Erro de Ligação. Tente mais tarde.";
+                startMessage.textContent = "Erro de Ligação. Verifique a apiKey.";
                 startGameButton.classList.add('bg-red-500');
                 console.error("Erro ao inicializar o Firebase:", error); 
             }
@@ -487,7 +486,7 @@
         }
         
         async function saveCurrentScore() {
-            const leaderboardPath = `public/data/leaderboard-${gameMode}`;
+            const leaderboardPath = `public/leaderboard-${gameMode}`;
             const currentLeaderboardRef = ref(db, leaderboardPath);
             if (!db || !currentLeaderboardRef) { showToast("Erro ao salvar. Verifique a sua ligação.", true); return false; }
             if (score === 0 && errors === 0) { return false; }
@@ -500,7 +499,7 @@
         
         function listenForLeaderboardUpdates() {
             if (!gameMode) return;
-            const leaderboardPath = `public/data/leaderboard-${gameMode}`;
+            const leaderboardPath = `public/leaderboard-${gameMode}`;
             const currentLeaderboardRef = ref(db, leaderboardPath);
             
             onValue(currentLeaderboardRef, (snapshot) => {
