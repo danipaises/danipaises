@@ -22,17 +22,19 @@
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4 bg-cover bg-center bg-fixed"
-      style="background-image: url('https://gcdnb.pbrd.co/images/Y00ulgY8xCGP.jpg?o=1');">
+      style="background-image: url('https://i.postimg.cc/L6Pqftg0/images-5.webp');">
 
     <div class="w-full max-w-md md:max-w-lg lg:max-w-xl space-y-6">
         <!-- Cabeçalho do Perfil: Foto, Nome e Título -->
         <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 p-4 bg-black bg-opacity-40 rounded-lg shadow-xl">
             <!-- Foto de Perfil -->
             <div class="flex-shrink-0">
+                <!-- Imagem de perfil com o link que já estava funcionando -->
                 <img
                     class="w-24 h-24 md:w-28 md:h-28 rounded-full object-cover shadow-md border-2 border-yellow-400"
-                    src="https://gcdnb.pbrd.co/images/6Z4poOg2Cvru.jpg?o=1"
+                    src="https://i.postimg.cc/HL2PB8RQ/sticker-2023-02-05-T16-30-03.webp"
                     alt="Foto de Perfil Dani Países"
+                    loading="lazy"
                     onerror="this.onerror=null;this.src='https://placehold.co/120x120/FFD700/000000?text=Erro';"
                 />
             </div>
@@ -207,30 +209,30 @@
     </div>
     <!-- FIM: Modal de Redes Sociais -->
 
-    <!-- Script para controlar o modal -->
+    <!-- O script do modal continua no final do body para não bloquear o carregamento do conteúdo -->
     <script>
-        // Seleciona os elementos do DOM
+        // Seleciona os elementos do DOM necessários para o modal
         const modal = document.getElementById('social-media-modal');
         const openModalButton = document.getElementById('social-media-button');
         const closeModalButton = document.getElementById('close-modal-button');
 
-        // Função para abrir o modal
+        // Função para abrir o modal: remove a classe 'hidden' para torná-lo visível
         const openModal = () => {
             modal.classList.remove('hidden');
         };
 
-        // Função para fechar o modal
+        // Função para fechar o modal: adiciona a classe 'hidden' para escondê-lo
         const closeModal = () => {
             modal.classList.add('hidden');
         };
 
-        // Adiciona os eventos de clique aos botões
+        // Adiciona os eventos de clique aos botões para chamar as funções
         openModalButton.addEventListener('click', openModal);
         closeModalButton.addEventListener('click', closeModal);
 
-        // Fecha o modal se o usuário clicar fora da área de conteúdo do modal
+        // Evento para fechar o modal se o usuário clicar fora da área de conteúdo
         modal.addEventListener('click', (event) => {
-            // Verifica se o clique foi no fundo do modal (o próprio elemento modal)
+            // Verifica se o alvo do clique é o próprio fundo do modal
             if (event.target === modal) {
                 closeModal();
             }
