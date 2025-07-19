@@ -47,6 +47,20 @@
             10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); }
             20%, 40%, 60%, 80% { transform: translateX(10px); }
         }
+         /* Estilos para os novos elementos (modal) */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 40;
+        }
+        .modal-content {
+            z-index: 50;
+            background-color: #1f2937;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex items-center justify-center min-h-screen">
@@ -56,24 +70,29 @@
         <!-- Ecrã Inicial -->
         <div id="start-screen" class="text-center">
             <h1 class="text-5xl font-black text-white mb-2">Color Rush</h1>
-            <p class="text-lg text-gray-400 mb-6">Selecione um nível de dificuldade.</p>
-            <div class="space-y-4">
-                 <button id="start-easy" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
+            <p class="text-lg text-gray-400 mb-4">Selecione um nível de dificuldade.</p>
+            <div class="space-y-4 mb-6">
+                 <button data-difficulty="easy" class="difficulty-btn w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
                     Fácil
                 </button>
-                 <button id="start-medium" class="w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
+                 <button data-difficulty="medium" class="difficulty-btn w-full bg-yellow-500 hover:bg-yellow-400 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
                     Médio
                 </button>
-                 <button id="start-hard" class="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
+                 <button data-difficulty="hard" class="difficulty-btn w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
                     Difícil
                 </button>
             </div>
+            <input type="text" id="player-name-input" placeholder="SEU NOME" maxlength="10" class="w-full max-w-xs mx-auto p-3 text-center bg-gray-700 border-2 border-gray-600 rounded-lg text-white uppercase tracking-widest mb-4 focus:outline-none focus:border-cyan-400">
+             <button id="start-game-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md disabled:opacity-50" disabled>
+                A Ligar...
+            </button>
         </div>
 
         <!-- Tabuleiro do Jogo (escondido inicialmente) -->
         <div id="game-board" class="hidden bg-gray-800 p-6 sm:p-8 rounded-2xl shadow-2xl transition-all duration-300">
             <div class="flex justify-between items-center mb-6">
                 <div class="text-lg font-bold">PONTUAÇÃO: <span id="score" class="text-green-400">0</span></div>
+                <div class="text-sm font-bold text-gray-400">JOGADOR: <span id="player-display" class="text-white"></span></div>
             </div>
             <div class="w-full bg-gray-700 rounded-full h-4 mb-8 overflow-hidden">
                 <div id="timer-bar" class="bg-green-500 h-full rounded-full transition-all duration-100 ease-linear"></div>
@@ -107,34 +126,57 @@
              <p class="text-xl text-gray-300 mb-1">A sua pontuação final foi:</p>
              <p id="final-score" class="text-7xl font-bold text-green-400 mb-4"></p>
              <p class="text-md text-gray-400 mb-6">Nível: <span id="final-difficulty" class="font-semibold"></span></p>
-             <button id="restart-button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-8 rounded-lg text-2xl transition-transform transform hover:scale-105">
+             <button id="restart-button" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
                 Voltar ao Início
             </button>
+             <button id="leaderboard-btn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-xl transition-transform transform hover:scale-105">
+                Ver Recordes
+            </button>
         </div>
-
     </div>
 
-    <script>
+    <!-- Modal do Ranking -->
+    <div id="leaderboard-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
+            <h3 id="leaderboard-title" class="text-2xl font-bold text-center text-cyan-400 mb-4">RANKING</h3>
+            <div id="leaderboard-content" class="overflow-y-auto text-sm">
+                 <p id="leaderboard-loading" class="text-center text-gray-400">A carregar recordes...</p>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="close-leaderboard-button" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Importações do Firebase ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
         // --- Elementos do DOM ---
         const startScreen = document.getElementById('start-screen');
         const gameBoard = document.getElementById('game-board');
         const gameOverScreen = document.getElementById('game-over-screen');
-        
-        const btnEasy = document.getElementById('start-easy');
-        const btnMedium = document.getElementById('start-medium');
-        const btnHard = document.getElementById('start-hard');
         const restartButton = document.getElementById('restart-button');
-
         const scoreEl = document.getElementById('score');
         const finalScoreEl = document.getElementById('final-score');
         const finalDifficultyEl = document.getElementById('final-difficulty');
         const timerBar = document.getElementById('timer-bar');
         const colorWordEl = document.getElementById('color-word');
-        
         const btnVermelho = document.getElementById('btn-vermelho');
         const btnAzul = document.getElementById('btn-azul');
         const btnAmarelo = document.getElementById('btn-amarelo');
         const btnVerde = document.getElementById('btn-verde');
+        const playerNameInput = document.getElementById('player-name-input');
+        const playerDisplay = document.getElementById('player-display');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        const leaderboardLoading = document.getElementById('leaderboard-loading');
+        const leaderboardTitle = document.getElementById('leaderboard-title');
+        const closeLeaderboardButton = document.getElementById('close-leaderboard-button');
 
         // --- Configurações do Jogo ---
         const colors = [
@@ -150,19 +192,30 @@
             hard: { name: 'Difícil', time: 2200, reduction: 75, allowMatch: true }
         };
 
-        let score = 0;
-        let currentCorrectColor;
-        let currentDifficulty;
-        let timerInterval;
-        let timeLeft = 100;
-        let gameActive = false;
-        let timeLimit;
+        let score = 0, currentCorrectColor, currentDifficulty, timerInterval, timeLeft = 100, gameActive = false, timeLimit;
+        let playerName = 'ANONIMO';
+        let selectedDifficultyKey = 'medium';
 
+        // --- Configuração do Firebase ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBTrsQWc6GPq5R0Ai2KmPki3hpHbg4c6g",
+          authDomain: "joga-cobrinha.firebaseapp.com",
+          projectId: "joga-cobrinha",
+          storageBucket: "joga-cobrinha.appspot.com",
+          messagingSenderId: "849126304274",
+          appId: "1:849126304274:web:e6855f68bd06e33e9686cb"
+        };
+        let db;
+        
         // --- Funções Principais do Jogo ---
 
-        function startGame(difficulty) {
-            currentDifficulty = difficulty;
+        function startGame() {
+            currentDifficulty = difficultySettings[selectedDifficultyKey];
             timeLimit = currentDifficulty.time;
+            
+            const nameInput = playerNameInput.value.trim().toUpperCase();
+            if (nameInput) playerName = nameInput;
+            playerDisplay.textContent = playerName;
 
             startScreen.classList.add('hidden');
             gameOverScreen.classList.add('hidden');
@@ -253,17 +306,94 @@
             
             finalScoreEl.textContent = score;
             finalDifficultyEl.textContent = currentDifficulty.name;
+            saveScore(playerName, score, selectedDifficultyKey);
+        }
+        
+        // --- Funções de Recorde ---
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                document.getElementById('start-game-button').disabled = false;
+                document.getElementById('start-game-button').textContent = "Iniciar Jogo";
+            } catch (error) { 
+                document.getElementById('start-game-button').textContent = "Erro de Conexão";
+                console.error("Erro ao inicializar o Firebase:", error); 
+            }
         }
 
+        function saveScore(name, scoreValue, difficulty) {
+            if (!db || scoreValue === 0) return;
+            const leaderboardRef = ref(db, `public/leaderboard-colorrush-${difficulty}`);
+            push(leaderboardRef, {
+                name: name,
+                score: scoreValue,
+                timestamp: serverTimestamp()
+            }).catch(error => console.error("Erro ao salvar placar:", error));
+        }
+
+        function listenForLeaderboardUpdates(difficulty) {
+            const leaderboardRef = ref(db, `public/leaderboard-colorrush-${difficulty}`);
+            onValue(leaderboardRef, (snapshot) => {
+                const scoresData = snapshot.val();
+                const allScores = [];
+                if (scoresData) {
+                    for (const key in scoresData) {
+                        allScores.push({ id: key, ...scoresData[key] });
+                    }
+                }
+
+                const bestScores = new Map();
+                allScores.forEach(s => {
+                    const existingScore = bestScores.get(s.name);
+                    if (!existingScore || s.score > existingScore.score) {
+                        bestScores.set(s.name, s);
+                    }
+                });
+
+                const uniqueBestScores = Array.from(bestScores.values());
+                uniqueBestScores.sort((a, b) => b.score - a.score);
+                
+                renderLeaderboard(uniqueBestScores, difficulty);
+            });
+        }
+
+        function renderLeaderboard(scores, difficulty) {
+            leaderboardTitle.textContent = `Ranking - ${difficultySettings[difficulty].name}`;
+            leaderboardLoading.classList.add('hidden');
+            if (scores.length === 0) {
+                leaderboardContent.innerHTML = '<p class="text-center text-gray-400">Nenhum recorde ainda.</p>';
+                return;
+            }
+            let tableHTML = `<table class="w-full text-left"><thead class="text-xs text-cyan-400 uppercase"><tr><th class="px-2 py-2">#</th><th class="px-4 py-2">Nome</th><th class="px-4 py-2 text-right">Pontos</th></tr></thead><tbody>`;
+            scores.slice(0, 20).forEach((s, index) => {
+                tableHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 font-bold">${index + 1}</td><td class="px-4 py-2">${s.name}</td><td class="px-4 py-2 text-right font-bold">${s.score}</td></tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            leaderboardContent.innerHTML = tableHTML;
+        }
+
+
         // --- Event Listeners ---
-        btnEasy.addEventListener('click', () => startGame(difficultySettings.easy));
-        btnMedium.addEventListener('click', () => startGame(difficultySettings.medium));
-        btnHard.addEventListener('click', () => startGame(difficultySettings.hard));
+        document.querySelectorAll('.difficulty-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                selectedDifficultyKey = button.dataset.difficulty;
+                startGame();
+            });
+        });
         
         restartButton.addEventListener('click', () => {
             gameOverScreen.classList.add('hidden');
             startScreen.classList.remove('hidden');
         });
+        
+        leaderboardBtn.addEventListener('click', () => {
+            listenForLeaderboardUpdates(selectedDifficultyKey);
+            leaderboardModal.classList.remove('hidden');
+        });
+        closeLeaderboardButton.addEventListener('click', () => leaderboardModal.classList.add('hidden'));
 
         btnVermelho.addEventListener('click', () => checkAnswer('ArrowUp'));
         btnAzul.addEventListener('click', () => checkAnswer('ArrowDown'));
@@ -276,6 +406,11 @@
                 checkAnswer(e.key);
             }
         });
+        
+        // --- Início ---
+        window.onload = () => {
+            initializeFirebase();
+        };
 
     </script>
 </body>

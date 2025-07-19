@@ -7,77 +7,183 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos gerais para remover margens e rolagem */
         body, html {
             margin: 0;
             padding: 0;
             overflow: hidden;
             height: 100%;
             width: 100%;
-            background-color: #333; /* Fundo escuro para focar no jogo */
+            background-color: #333;
             display: flex;
             justify-content: center;
             align-items: center;
+            font-family: 'Press Start 2P', cursive;
         }
-        /* Estilo do canvas do jogo */
         canvas {
             display: block;
-            touch-action: none; /* Desabilita ações de toque padrão como zoom */
+            touch-action: none;
             max-width: 100%;
             max-height: 100%;
             border-radius: 8px;
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
+        /* Estilos para os novos elementos */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .start-input {
+            font-family: 'Press Start 2P', cursive;
+            text-transform: uppercase;
+            background-color: #a2b1b2;
+            border: 2px solid #2c3e50;
+            color: #0a191e;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            width: 80%;
+            max-width: 300px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 40;
+        }
+        .modal-content {
+            z-index: 50;
+            background-color: #2d3748;
+            color: white;
+        }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div id="game-container" class="relative">
+        <canvas id="gameCanvas"></canvas>
 
-    <script>
-        // --- CONFIGURAÇÃO INICIAL ---
+        <!-- Tela de Início -->
+        <div id="start-screen" class="overlay">
+            <h1 class="text-3xl md:text-4xl mb-4">Flappy Dani Países</h1>
+            <p class="mb-6">Digite seu nome para começar:</p>
+            <input type="text" id="player-name-input" placeholder="SEU NOME" maxlength="10" class="start-input mb-4">
+            <button id="start-game-button" class="btn" disabled>A Ligar...</button>
+        </div>
+
+        <!-- Tela de Game Over -->
+        <div id="game-over-screen" class="overlay" style="display: none;">
+            <h2 class="text-4xl text-red-500 mb-4">Game Over</h2>
+            <p class="text-2xl mb-2">Pontos: <span id="final-score">0</span></p>
+            <p class="text-sm mb-6">Seu recorde foi salvo!</p>
+            <button id="restart-button" class="btn mb-4">Tentar de Novo</button>
+            <button id="leaderboard-btn" class="btn bg-blue-500 hover:bg-blue-600">Ver Recordes</button>
+        </div>
+    </div>
+
+    <!-- Modal do Ranking -->
+    <div id="leaderboard-modal" class="hidden fixed inset-0 flex items-center justify-center z-50 p-4">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] flex flex-col">
+            <h3 class="text-2xl font-bold text-center text-yellow-400 mb-4">RANKING - FLAPPY DANI</h3>
+            <div id="leaderboard-content" class="overflow-y-auto text-sm">
+                 <p id="leaderboard-loading" class="text-center text-gray-400">A carregar recordes...</p>
+            </div>
+            <div class="mt-6 text-center">
+                <button id="close-leaderboard-button" class="px-6 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Importações do Firebase ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // --- Elementos do DOM ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const playerNameInput = document.getElementById('player-name-input');
+        const startGameButton = document.getElementById('start-game-button');
+        const restartButton = document.getElementById('restart-button');
+        const finalScoreEl = document.getElementById('final-score');
+        const leaderboardBtn = document.getElementById('leaderboard-btn');
+        const leaderboardModal = document.getElementById('leaderboard-modal');
+        const leaderboardContent = document.getElementById('leaderboard-content');
+        const leaderboardLoading = document.getElementById('leaderboard-loading');
+        const closeLeaderboardButton = document.getElementById('close-leaderboard-button');
+        
+        // --- Configuração do Firebase ---
+        const firebaseConfig = {
+          apiKey: "AIzaSyDBTrsQWc6GPq5R0Ai2KmPki3hpHbg4c6g",
+          authDomain: "joga-cobrinha.firebaseapp.com",
+          projectId: "joga-cobrinha",
+          storageBucket: "joga-cobrinha.appspot.com",
+          messagingSenderId: "849126304274",
+          appId: "1:849126304274:web:e6855f68bd06e33e9686cb"
+        };
+        let db;
+        const LEADERBOARD_PATH = 'public/leaderboard-flappybird';
 
-        let gameState = 'start'; // Estados possíveis: 'start', 'playing', 'gameOver'
+        // --- Variáveis do Jogo ---
+        let gameState = 'start';
         let score = 0;
         let frameCount = 0;
+        let playerName = 'ANONIMO';
+        let gameLoopId;
 
-        // --- IMAGEM DO JOGADOR (DANI) ---
         const daniImage = new Image();
         daniImage.src = 'https://gcdnb.pbrd.co/images/6Z4poOg2Cvru.jpg?o';
-        // Fallback caso a imagem não carregue
-        daniImage.onerror = function() {
-            console.error("Erro ao carregar a imagem. Usando um quadrado como fallback.");
-        };
+        daniImage.onerror = () => console.error("Erro ao carregar a imagem.");
 
-        // --- CONFIGURAÇÕES DO JOGO ---
-        const gravity = 0.15; 
-        const lift = -6;    
-        const playerSize = 50;
-        
-        const pipeWidth = 90; 
-        const pipeGap = 300; 
-        let pipeSpeed = 2.5; 
+        const gravity = 0.15, lift = -6, playerSize = 50;
+        const pipeWidth = 90, pipeGap = 300;
+        let pipeSpeed = 2.5;
         const pipeSpawnInterval = 150;
 
-        // --- CONFIGURAÇÕES DO FUNDO DE BANDEIRAS ---
         const flags = ['🇧🇷', '🇺🇸', '🇯🇵', '🇩🇪', '🇨🇦', '🇦🇷', '🇮🇹', '🇬🇧', '🇫🇷', '🇪🇸', '🇰🇷', '🇨🇳', '🇷🇺', '🇮🇳', '🇦🇺', '🇿🇦', '🇲🇽', '🇵🇹'];
         let backgroundX = 0;
         const backgroundSpeed = 0.5;
 
-        // --- OBJETOS DO JOGO ---
-        let player = {
-            x: 100,
-            y: 150,
-            velocity: 0,
-            width: playerSize,
-            height: playerSize
-        };
-
+        let player = { x: 100, y: 150, velocity: 0, width: playerSize, height: playerSize };
         let pipes = [];
 
-        // --- FUNÇÃO DE REDIMENSIONAMENTO ---
+        // --- Funções Principais ---
+
         function resizeCanvas() {
             const gameAspectRatio = 9 / 16;
             const windowWidth = window.innerWidth;
@@ -94,42 +200,53 @@
             
             player.x = canvas.width / 4;
             player.y = canvas.height / 2;
-            if (gameState !== 'playing') {
-                draw();
+            
+            // Redesenha a tela inicial se o jogo não começou
+            if (gameState === 'start') {
+                drawBackground();
+                drawPlayer();
             }
         }
 
-        // --- CONTROLES ---
         function handleInput(event) {
             event.preventDefault();
-            if (gameState === 'playing') {
-                player.velocity = lift;
-            } else {
-                resetGame();
-                gameState = 'playing';
-            }
+            player.velocity = lift;
         }
 
-        window.addEventListener('touchstart', handleInput, { passive: false });
-        window.addEventListener('mousedown', handleInput);
-        window.addEventListener('resize', resizeCanvas);
+        function resetGame() {
+            player.x = canvas.width / 4;
+            player.y = canvas.height / 2;
+            player.velocity = 0;
+            pipes = [];
+            score = 0;
+            frameCount = 0;
+            pipeSpeed = 2.5;
+            backgroundX = 0;
+            gameOverScreen.style.display = 'none';
+            gameState = 'playing';
+            gameLoop();
+        }
 
-        // --- FUNÇÕES DE DESENHO ---
+        function gameLoop() {
+            if (gameState !== 'playing') {
+                cancelAnimationFrame(gameLoopId);
+                return;
+            }
+            update();
+            draw();
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- Funções de Desenho ---
 
         function drawBackground() {
-            ctx.fillStyle = '#5c94fc'; // Cor do céu do Mario
+            ctx.fillStyle = '#5c94fc';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // MUDANÇA: Tamanho e espaçamento das bandeiras aumentados
-            const flagSize = 60; 
-            const spacing = flagSize * 1.8; // Aumenta a distância entre bandeiras
-
+            const flagSize = 60, spacing = flagSize * 1.8;
             const flagsPerColumn = Math.ceil(canvas.height / spacing);
             const flagsPerRow = Math.ceil(canvas.width / spacing) + 1;
-            
             ctx.font = `${flagSize}px sans-serif`;
-            ctx.globalAlpha = 0.25; // Opacidade ajustada
-
+            ctx.globalAlpha = 0.25;
             for (let i = 0; i < flagsPerRow; i++) {
                 for (let j = 0; j < flagsPerColumn; j++) {
                     const x = (i * spacing) + (backgroundX % spacing) - spacing;
@@ -143,18 +260,14 @@
         
         function drawPipes() {
             for (let p of pipes) {
-                const rimHeight = 25;
-                const rimWidthOffset = 10;
-
+                const rimHeight = 25, rimWidthOffset = 10;
                 const gradient = ctx.createLinearGradient(p.x, 0, p.x + pipeWidth, 0);
                 gradient.addColorStop(0, '#62e03d');
                 gradient.addColorStop(0.3, '#1c981a');
                 gradient.addColorStop(1, '#0c5c0a');
                 ctx.fillStyle = gradient;
-
                 ctx.fillRect(p.x, 0, pipeWidth, p.top - rimHeight);
                 ctx.fillRect(p.x - rimWidthOffset / 2, p.top - rimHeight, pipeWidth + rimWidthOffset, rimHeight);
-
                 ctx.fillRect(p.x, p.top + pipeGap + rimHeight, pipeWidth, canvas.height - (p.top + pipeGap) - rimHeight);
                 ctx.fillRect(p.x - rimWidthOffset / 2, p.top + pipeGap, pipeWidth + rimWidthOffset, rimHeight);
             }
@@ -166,12 +279,10 @@
             ctx.beginPath();
             ctx.arc(player.x + player.width / 2 + 3, player.y + player.height / 2 + 3, player.width / 2, 0, Math.PI * 2);
             ctx.fill();
-            
             ctx.beginPath();
             ctx.arc(player.x + player.width / 2, player.y + player.height / 2, player.width / 2, 0, Math.PI * 2, true);
             ctx.closePath();
             ctx.clip();
-            
             if (daniImage.complete && daniImage.naturalHeight !== 0) {
                 ctx.drawImage(daniImage, player.x, player.y, player.width, player.height);
             } else {
@@ -182,6 +293,7 @@
         }
         
         function drawScore() {
+            if (gameState !== 'playing') return;
             ctx.fillStyle = 'white';
             ctx.font = `bold ${canvas.width * 0.1}px 'Press Start 2P', cursive`;
             ctx.textAlign = 'center';
@@ -191,50 +303,27 @@
             ctx.fillText(score, canvas.width / 2, canvas.height * 0.1);
         }
 
-        function drawMessages() {
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 6;
-
-            if (gameState === 'start') {
-                ctx.font = `bold ${canvas.width * 0.08}px 'Press Start 2P', cursive`;
-                ctx.strokeText('Flappy Dani Países', canvas.width / 2, canvas.height / 2 - 60);
-                ctx.fillText('Flappy Dani Países', canvas.width / 2, canvas.height / 2 - 60);
-                
-                ctx.font = `bold ${canvas.width * 0.05}px 'Press Start 2P', cursive`;
-                ctx.strokeText('Toque para Começar', canvas.width / 2, canvas.height / 2 + 20);
-                ctx.fillText('Toque para Começar', canvas.width / 2, canvas.height / 2 + 20);
-            } else if (gameState === 'gameOver') {
-                ctx.font = `bold ${canvas.width * 0.1}px 'Press Start 2P', cursive`;
-                ctx.strokeText('Game Over', canvas.width / 2, canvas.height / 2 - 80);
-                ctx.fillText('Game Over', canvas.width / 2, canvas.height / 2 - 80);
-                
-                ctx.font = `bold ${canvas.width * 0.06}px 'Press Start 2P', cursive`;
-                ctx.strokeText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2);
-                ctx.fillText(`Pontos: ${score}`, canvas.width / 2, canvas.height / 2);
-                
-                ctx.font = `bold ${canvas.width * 0.045}px 'Press Start 2P', cursive`;
-                ctx.strokeText('Toque para Tentar de Novo', canvas.width / 2, canvas.height / 2 + 60);
-                ctx.fillText('Toque para Tentar de Novo', canvas.width / 2, canvas.height / 2 + 60);
-            }
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawPipes();
+            drawPlayer();
+            drawScore();
         }
 
-        // --- ATUALIZAÇÃO DO JOGO (LÓGICA) ---
+        // --- Lógica de Atualização ---
         function update() {
-            if (gameState !== 'playing') return;
-            
             backgroundX -= backgroundSpeed;
             player.velocity += gravity;
             player.y += player.velocity;
 
             if (player.y + player.height > canvas.height || player.y < 0) {
-                gameState = 'gameOver';
+                endGame();
             }
 
             if (frameCount % pipeSpawnInterval === 0) {
                 const top = Math.random() * (canvas.height - pipeGap - 200) + 100;
-                pipes.push({ x: canvas.width, top: top });
+                pipes.push({ x: canvas.width, top: top, passed: false });
             }
             frameCount++;
             
@@ -246,7 +335,7 @@
                 if (player.x < p.x + pipeWidth &&
                     player.x + player.width > p.x &&
                     (player.y < p.top || player.y + player.height > p.top + pipeGap)) {
-                    gameState = 'gameOver';
+                    endGame();
                 }
 
                 if (p.x + pipeWidth < player.x && !p.passed) {
@@ -265,42 +354,119 @@
             }
         }
         
-        // --- FUNÇÃO DE RESET ---
-        function resetGame() {
-            player.x = canvas.width / 4;
-            player.y = canvas.height / 2;
-            player.velocity = 0;
-            pipes = [];
-            score = 0;
-            frameCount = 0;
-            pipeSpeed = 2.5;
-            backgroundX = 0;
+        function endGame() {
+            if (gameState === 'gameOver') return;
+            gameState = 'gameOver';
+            finalScoreEl.textContent = score;
+            gameOverScreen.style.display = 'flex';
+            saveScore(playerName, score);
         }
 
-        // --- LOOP PRINCIPAL DO JOGO ---
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            drawBackground();
-            update(); 
-            drawPipes();
-            drawPlayer();
-            drawScore();
-            drawMessages();
-            
-            requestAnimationFrame(draw);
+        // --- Funções de Recorde ---
+
+        async function initializeFirebase() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+                const auth = getAuth(app);
+                await signInAnonymously(auth);
+                startGameButton.disabled = false;
+                startGameButton.textContent = "Iniciar Jogo";
+                listenForLeaderboardUpdates();
+            } catch (error) { 
+                startGameButton.textContent = "Erro de Conexão";
+                console.error("Erro ao inicializar o Firebase:", error); 
+            }
         }
 
-        // --- INÍCIO ---
-        resizeCanvas();
-        daniImage.onload = () => {
-            if (gameState === 'start') draw();
+        function saveScore(name, scoreValue) {
+            if (!db || scoreValue < 0) return;
+            const leaderboardRef = ref(db, LEADERBOARD_PATH);
+            push(leaderboardRef, {
+                name: name,
+                score: scoreValue,
+                timestamp: serverTimestamp()
+            }).catch(error => console.error("Erro ao salvar placar:", error));
+        }
+
+        function listenForLeaderboardUpdates() {
+            const leaderboardRef = ref(db, LEADERBOARD_PATH);
+            onValue(leaderboardRef, (snapshot) => {
+                const scoresData = snapshot.val();
+                const allScores = [];
+                if (scoresData) {
+                    for (const key in scoresData) {
+                        allScores.push({ id: key, ...scoresData[key] });
+                    }
+                }
+
+                const bestScores = new Map();
+                allScores.forEach(s => {
+                    const existingScore = bestScores.get(s.name);
+                    if (!existingScore || s.score > existingScore.score) {
+                        bestScores.set(s.name, s);
+                    }
+                });
+
+                const uniqueBestScores = Array.from(bestScores.values());
+                uniqueBestScores.sort((a, b) => b.score - a.score);
+                
+                renderLeaderboard(uniqueBestScores);
+            });
+        }
+
+        function renderLeaderboard(scores) {
+            leaderboardLoading.classList.add('hidden');
+            if (scores.length === 0) {
+                leaderboardContent.innerHTML = '<p class="text-center text-gray-400">Nenhum recorde ainda. Seja o primeiro!</p>';
+                return;
+            }
+            let tableHTML = `<table class="w-full text-left"><thead class="text-xs text-yellow-400 uppercase"><tr><th class="px-2 py-2">#</th><th class="px-4 py-2">Nome</th><th class="px-4 py-2 text-right">Pontos</th></tr></thead><tbody>`;
+            scores.slice(0, 20).forEach((s, index) => {
+                tableHTML += `<tr class="border-b border-gray-700"><td class="px-2 py-2 font-bold">${index + 1}</td><td class="px-4 py-2">${s.name}</td><td class="px-4 py-2 text-right font-bold">${s.score}</td></tr>`;
+            });
+            tableHTML += '</tbody></table>';
+            leaderboardContent.innerHTML = tableHTML;
+        }
+
+        // --- Event Listeners ---
+        startGameButton.addEventListener('click', () => {
+            const nameInput = playerNameInput.value.trim().toUpperCase();
+            if (nameInput) playerName = nameInput;
+            startScreen.style.display = 'none';
+            resetGame();
+        });
+
+        restartButton.addEventListener('click', resetGame);
+        leaderboardBtn.addEventListener('click', () => leaderboardModal.classList.remove('hidden'));
+        closeLeaderboardButton.addEventListener('click', () => leaderboardModal.classList.add('hidden'));
+
+        window.addEventListener('touchstart', (event) => {
+            if (gameState === 'playing') {
+                handleInput(event);
+            }
+        }, { passive: false });
+
+        window.addEventListener('mousedown', (event) => {
+            if (gameState === 'playing') {
+                handleInput(event);
+            }
+        });
+        
+        // **NOVO LISTENER PARA A TECLA DE ESPAÇO**
+        window.addEventListener('keydown', (event) => {
+            if (gameState === 'playing' && event.code === 'Space') {
+                handleInput(event);
+            }
+        });
+        
+        window.addEventListener('resize', resizeCanvas);
+        
+        // --- Início ---
+        window.onload = () => {
+            resizeCanvas();
+            initializeFirebase();
         };
-        if (daniImage.complete) {
-            if (gameState === 'start') draw();
-        }
-
     </script>
 </body>
 </html>
-
