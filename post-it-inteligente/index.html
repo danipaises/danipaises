@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> post-it inteligente: Conexão Físico-Digital</title>
+    <title>Post-it Inteligente</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5"/>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -22,13 +26,13 @@
     <div class="w-full max-w-2xl bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
         
         <div class="text-center">
-            <h1 class="text-3xl font-bold text-slate-800"> post-it inteligente</h1>
-            <p class="text-slate-500 mt-1">Crie uma ponte entre o mundo físico e o digital.</p>
+            <h1 class="text-3xl font-bold text-slate-800">Post-it Inteligente</h1>
+            <p class="text-slate-500 mt-1">Anexe conteúdo digital a post-its físicos.</p>
         </div>
 
         <div class="flex bg-slate-100 rounded-lg p-1">
-            <button id="btn-create-tab" class="flex-1 p-2 rounded-md text-sm font-semibold bg-white shadow text-indigo-600 transition-all">Criar Nova Tag</button>
-            <button id="btn-scan-tab" class="flex-1 p-2 rounded-md text-sm font-semibold text-slate-600 transition-all">Buscar Tag</button>
+            <button id="btn-create-tab" class="flex-1 p-2 rounded-md text-sm font-semibold bg-white shadow text-indigo-600 transition-all">Criar Novo Post-it</button>
+            <button id="btn-scan-tab" class="flex-1 p-2 rounded-md text-sm font-semibold text-slate-600 transition-all">Buscar Post-it</button>
         </div>
 
         <div id="create-section" class="space-y-4">
@@ -63,12 +67,12 @@
             </div>
 
             <button id="save-tag-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-green-700 disabled:bg-slate-400" disabled>
-                Salvar Tag e Conteúdo
+                Salvar Post-it
             </button>
         </div>
 
         <div id="scan-section" class="hidden space-y-4">
-             <h2 class="text-xl font-semibold text-slate-700 border-b pb-2">1. Digite a Tag</h2>
+             <h2 class="text-xl font-semibold text-slate-700 border-b pb-2">1. Digite a Tag do Post-it</h2>
              <div class="flex flex-col sm:flex-row items-center gap-4">
                 <input type="text" id="search-tag-input" class="w-full flex-grow p-3 border rounded-lg tag-display" placeholder="#xxxxxx">
                 <button id="search-tag-btn" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold px-5 py-3 rounded-lg shadow-md hover:bg-indigo-700">Buscar</button>
@@ -81,7 +85,7 @@
             </div>
             <h2 class="text-xl font-semibold text-slate-700 border-b pb-2 pt-4">2. Resultado</h2>
             <div id="result-display" class="p-4 bg-slate-50 rounded-lg min-h-[100px] flex items-center justify-center">
-                <p class="text-slate-500">O conteúdo da tag aparecerá aqui.</p>
+                <p class="text-slate-500">O conteúdo do post-it aparecerá aqui.</p>
             </div>
         </div>
 
@@ -98,7 +102,6 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // Sua chave da API do ImgBB
         const IMGBB_API_KEY = "72f0de5dde247809e5aa547fa432a62d"; 
 
         const firebaseConfig = {
@@ -255,14 +258,14 @@
                 }
                 
                 await setDoc(doc(db, "tags", currentTag), tagData);
-                showMessage("Tag salva com sucesso!");
+                showMessage("Post-it salvo com sucesso!");
                 resetCreateForm();
 
             } catch (error) {
                 showMessage(error.message);
             } finally {
                 saveTagBtn.disabled = false;
-                saveTagBtn.textContent = 'Salvar Tag e Conteúdo';
+                saveTagBtn.textContent = 'Salvar Post-it';
             }
         }
         
@@ -315,7 +318,7 @@
             } else if (data.type === 'image') {
                 const img = document.createElement('img');
                 img.src = data.content;
-                img.alt = "Imagem da Tag";
+                img.alt = "Imagem do Post-it";
                 img.onerror = () => { resultDisplay.innerHTML = `<p class="text-red-500">Não foi possível carregar a imagem.</p>`; };
                 resultDisplay.appendChild(img);
             }
@@ -335,6 +338,21 @@
                 showMessage("Não foi possível aceder à câmera.");
             }
         });
+    </script>
+
+    <!-- Script para registar o Service Worker (CORRIGIDO PARA GITHUB PAGES) -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js') // Alteração aqui: removida a barra inicial
+            .then(registration => {
+              console.log('ServiceWorker registado com sucesso:', registration.scope);
+            })
+            .catch(err => {
+              console.log('Falha no registo do ServiceWorker:', err);
+            });
+        });
+      }
     </script>
 </body>
 </html>
