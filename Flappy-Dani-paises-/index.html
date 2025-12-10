@@ -98,7 +98,7 @@
         }
         #seasonLabel.visible { opacity: 0.8; transform: translateY(0); }
 
-        /* --- SPLASH SCREEN (RETRO NEON) --- */
+        /* --- SPLASH SCREEN (INTRO) --- */
         #splashScreen {
             background-color: #1a0b2e;
             background-image: 
@@ -107,10 +107,10 @@
             background-size: 100% 2px, 3px 100%;
             z-index: 100;
             opacity: 1;
-            transition: opacity 1s ease-in-out;
+            transition: opacity 0.5s ease-in-out;
             overflow: hidden;
-            pointer-events: auto !important; /* CRUCIAL: Permite cliques */
-            cursor: pointer;
+            pointer-events: auto !important; /* Obriga a aceitar cliques */
+            cursor: pointer !important; /* Mãozinha em todo o ecrã */
         }
 
         .retro-grid {
@@ -128,7 +128,7 @@
         .splash-content {
             position: relative; z-index: 10; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100%; width: 100%;
-            pointer-events: none; /* Deixa o clique passar para o pai #splashScreen */
+            /* Removemos pointer-events: none daqui para garantir que filhos não bloqueiem */
         }
 
         .company-header {
@@ -164,9 +164,11 @@
             animation: pulse 1s infinite;
             text-shadow: 0 0 5px #fff;
             background: rgba(0,0,0,0.5);
-            padding: 5px 10px;
-            border-radius: 5px;
-            pointer-events: auto; /* Garante que o texto é clicável também */
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            pointer-events: auto; /* Garante clique explícito */
+            cursor: pointer;
         }
 
         @keyframes gridMove { 0% { background-position: 0 0; } 100% { background-position: 0 40px; } }
@@ -179,8 +181,9 @@
 </head>
 <body>
 
-    <!-- INTRO COM INTERAÇÃO OBRIGATÓRIA -->
-    <div id="splashScreen" class="ui-layer">
+    <!-- INTRO COM CLIQUE UNIVERSAL -->
+    <!-- Adicionado ID e onclick direto para redundância -->
+    <div id="splashScreen" class="ui-layer" onclick="handleSplashClick()">
         <div class="retro-grid"></div>
         <div class="splash-content">
             <h1 class="company-header">DANI PAÍSES<br><span class="store-sub">STORE WEB</span></h1>
@@ -190,7 +193,7 @@
                 <div class="creator-row">CRIADOR FUNCIONÁRIO LUCAS</div>
             </div>
             <!-- Botão de Ação -->
-            <div class="click-hint">(CLIQUE PARA JOGAR)</div>
+            <button class="click-hint" onclick="handleSplashClick()">CLIQUE PARA JOGAR</button>
         </div>
         <div class="absolute bottom-4 text-xs text-cyan-500 opacity-80">© 2025 Direitos Reservados</div>
     </div>
@@ -306,7 +309,6 @@
             skin: localStorage.getItem('selectedSkin') || 'brazil'
         };
 
-        // --- SKINS (PAÍSES) ---
         const SKINS = {
             'brazil': { type: 'brazil', wing: '#fff' },
             'portugal': { type: 'portugal', wing: '#fff' },
@@ -324,7 +326,7 @@
             document.getElementById('skin-' + skinId).classList.add('selected');
         }
 
-        // --- CORES & ESTAÇÕES (Lerp) ---
+        // --- CORES & ESTAÇÕES ---
         function hexToRgb(hex) {
             var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
             return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
@@ -384,16 +386,29 @@
             setTimeout(() => label.classList.add('visible'), 100);
         }
 
-        // --- SISTEMA DE ÁUDIO & MÚSICA OTIMIZADO ---
+        // --- SISTEMA DE ÁUDIO ROBUSTO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let isMusicPlaying = false; 
         let musicTimer = null; 
         let nextNoteTime = 0; 
         let noteIndex = 0;
         let currentMelodyType = 'MENU';
+        let audioUnlocked = false; // Flag para saber se já temos permissão
 
         const menuMelody = [{f:392.00,d:0.4}, {f:329.63,d:0.4}, {f:261.63,d:0.4}, {f:196.00,d:0.8}, {f:261.63,d:0.4}, {f:329.63,d:0.4}, {f:392.00,d:0.8}, {f:0,d:0.4}];
         const gameMelody = [{f:261.63,d:0.2},{f:329.63,d:0.2},{f:392.00,d:0.2},{f:523.25,d:0.4},{f:392.00,d:0.2},{f:523.25,d:0.4},{f:0,d:0.1},{f:293.66,d:0.2},{f:349.23,d:0.2},{f:440.00,d:0.2},{f:587.33,d:0.4},{f:440.00,d:0.2},{f:587.33,d:0.4},{f:0,d:0.1}];
+
+        // Função vital: Tenta retomar o áudio
+        function resumeAudioContext() {
+            if (audioCtx.state === 'suspended') {
+                return audioCtx.resume().then(() => {
+                    audioUnlocked = true;
+                    return true;
+                }).catch(() => false);
+            }
+            audioUnlocked = true;
+            return Promise.resolve(true);
+        }
 
         function playTone(freq, duration, time, vol=0.1, type='square') {
             const osc=audioCtx.createOscillator(); const gain=audioCtx.createGain();
@@ -405,6 +420,7 @@
         function scheduleMusic() {
             const melody = currentMelodyType === 'GAME' ? gameMelody : menuMelody;
             
+            // Sync check agressivo
             if (nextNoteTime < audioCtx.currentTime) {
                 nextNoteTime = audioCtx.currentTime + 0.05;
             }
@@ -423,32 +439,25 @@
 
         function startMusic(type) {
             if (currentMelodyType === type && isMusicPlaying) return;
-            // Retoma contexto se necessário
-            if (audioCtx.state === 'suspended') audioCtx.resume();
             
             currentMelodyType = type;
             isMusicPlaying = true;
             noteIndex = 0;
-            // IMPORTANTE: Reseta o tempo para agora
             nextNoteTime = audioCtx.currentTime + 0.1;
             
             if(musicTimer) cancelAnimationFrame(musicTimer);
             scheduleMusic();
         }
 
-        function stopMusic() {
-            isMusicPlaying = false;
-            if (musicTimer) cancelAnimationFrame(musicTimer);
-        }
+        function stopMusic() { isMusicPlaying = false; if (musicTimer) cancelAnimationFrame(musicTimer); }
 
         function playSound(type) {
-            if(audioCtx.state==='suspended')audioCtx.resume(); 
+            // Se o áudio não estiver desbloqueado, ignora para não dar erro
+            if (!audioUnlocked && audioCtx.state === 'suspended') return;
+            
             const now = audioCtx.currentTime; 
             if(type==='flap')playTone(300, 0.1, now, 0.2, 'triangle');
-            else if(type==='score') { 
-                playTone(1000, 0.1, now, 0.1, 'square'); 
-                playTone(1500, 0.1, now + 0.05, 0.1, 'square'); 
-            }
+            else if(type==='score') { playTone(1000, 0.1, now, 0.1, 'square'); playTone(1500, 0.1, now + 0.05, 0.1, 'square'); }
             else if(type==='hit')playTone(150, 0.3, now, 0.3, 'sawtooth');
         }
 
@@ -481,51 +490,21 @@
             x: 60, y: 150, v: 0, r: 14, rot: 0,
             draw() {
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot * Math.PI/180);
-                
                 let skinData = SKINS[state.skin] || SKINS['brazil'];
                 let type = skinData.type;
-
                 ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI*2); ctx.clip();
-
-                if (type === 'brazil') {
-                    ctx.fillStyle = '#009c3b'; ctx.fillRect(-17, -17, 34, 34);
-                    ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.fill();
-                    ctx.fillStyle = '#002776'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
-                } else if (type === 'portugal') {
-                    ctx.fillStyle = '#006600'; ctx.fillRect(-17, -17, 14, 34);
-                    ctx.fillStyle = '#ff0000'; ctx.fillRect(-3, -17, 20, 34);
-                    ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.arc(-3, 0, 6, 0, Math.PI*2); ctx.fill();
-                } else if (type === 'usa') {
-                    ctx.fillStyle = '#fff'; ctx.fillRect(-17, -17, 34, 34);
-                    ctx.fillStyle = '#b22234'; for(let i=-17; i<17; i+=6) ctx.fillRect(-17, i, 34, 3);
-                    ctx.fillStyle = '#3c3b6e'; ctx.fillRect(-17, -17, 16, 16);
-                } else if (type === 'france') {
-                    ctx.fillStyle = '#0055a4'; ctx.fillRect(-17, -17, 11, 34);
-                    ctx.fillStyle = '#ffffff'; ctx.fillRect(-6, -17, 11, 34);
-                    ctx.fillStyle = '#ef4135'; ctx.fillRect(5, -17, 12, 34);
-                } else if (type === 'japan') {
-                    ctx.fillStyle = '#ffffff'; ctx.fillRect(-17, -17, 34, 34);
-                    ctx.fillStyle = '#bc002d'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-                } else if (type === 'germany') {
-                    ctx.fillStyle = '#000000'; ctx.fillRect(-17, -17, 34, 11);
-                    ctx.fillStyle = '#dd0000'; ctx.fillRect(-17, -6, 34, 11);
-                    ctx.fillStyle = '#ffce00'; ctx.fillRect(-17, 5, 34, 12);
-                } else if (type === 'rainbow') {
-                    let hue = (state.frames * 5) % 360;
-                    ctx.fillStyle = hsl(${hue}, 100%, 50%); ctx.fillRect(-17, -17, 34, 34);
-                }
-
-                ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); 
-                ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.stroke();
-                
+                if (type === 'brazil') { ctx.fillStyle = '#009c3b'; ctx.fillRect(-17, -17, 34, 34); ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.fill(); ctx.fillStyle = '#002776'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill(); } 
+                else if (type === 'portugal') { ctx.fillStyle = '#006600'; ctx.fillRect(-17, -17, 14, 34); ctx.fillStyle = '#ff0000'; ctx.fillRect(-3, -17, 20, 34); ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.arc(-3, 0, 6, 0, Math.PI*2); ctx.fill(); } 
+                else if (type === 'usa') { ctx.fillStyle = '#fff'; ctx.fillRect(-17, -17, 34, 34); ctx.fillStyle = '#b22234'; for(let i=-17; i<17; i+=6) ctx.fillRect(-17, i, 34, 3); ctx.fillStyle = '#3c3b6e'; ctx.fillRect(-17, -17, 16, 16); } 
+                else if (type === 'france') { ctx.fillStyle = '#0055a4'; ctx.fillRect(-17, -17, 11, 34); ctx.fillStyle = '#ffffff'; ctx.fillRect(-6, -17, 11, 34); ctx.fillStyle = '#ef4135'; ctx.fillRect(5, -17, 12, 34); } 
+                else if (type === 'japan') { ctx.fillStyle = '#ffffff'; ctx.fillRect(-17, -17, 34, 34); ctx.fillStyle = '#bc002d'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill(); } 
+                else if (type === 'germany') { ctx.fillStyle = '#000000'; ctx.fillRect(-17, -17, 34, 11); ctx.fillStyle = '#dd0000'; ctx.fillRect(-17, -6, 34, 11); ctx.fillStyle = '#ffce00'; ctx.fillRect(-17, 5, 34, 12); } 
+                else if (type === 'rainbow') { let hue = (state.frames * 5) % 360; ctx.fillStyle = hsl(${hue}, 100%, 50%); ctx.fillRect(-17, -17, 34, 34); }
+                ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(0,0,17,0,Math.PI*2); ctx.stroke();
                 ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(6,-6,7,0,Math.PI*2); ctx.fill(); ctx.stroke();
                 ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(8,-6,2,0,Math.PI*2); ctx.fill();
-                
-                ctx.fillStyle = skinData.wing;
-                ctx.beginPath(); ctx.ellipse(-6, 2, 8, 5, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-                
-                ctx.fillStyle='#f97316'; ctx.beginPath(); ctx.rect(8,2,10,6); ctx.fill(); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(18,5); ctx.lineTo(8,5); ctx.stroke();
+                ctx.fillStyle = skinData.wing; ctx.beginPath(); ctx.ellipse(-6, 2, 8, 5, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                ctx.fillStyle='#f97316'; ctx.beginPath(); ctx.rect(8,2,10,6); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.moveTo(18,5); ctx.lineTo(8,5); ctx.stroke();
                 ctx.restore();
             },
             update() {
@@ -543,34 +522,18 @@
                 let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
                 grad.addColorStop(0, currentVisuals.skyTop); grad.addColorStop(1, currentVisuals.skyBot);
                 ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
-
                 ctx.fillStyle = '#fff';
-                this.drawLayer(this.cloudsX, 400, (x) => {
-                    ctx.beginPath(); ctx.arc(x, 100, 30, 0, Math.PI*2); ctx.arc(x+25, 90, 35, 0, Math.PI*2); ctx.arc(x+50, 100, 28, 0, Math.PI*2); ctx.fill();
-                });
-                
+                this.drawLayer(this.cloudsX, 400, (x) => { ctx.beginPath(); ctx.arc(x, 100, 30, 0, Math.PI*2); ctx.arc(x+25, 90, 35, 0, Math.PI*2); ctx.arc(x+50, 100, 28, 0, Math.PI*2); ctx.fill(); });
                 ctx.fillStyle = currentVisuals.bg;
-                this.drawLayer(this.cityX, 300, (x) => {
-                    let y = canvas.height - CONFIG.groundH - 100;
-                    ctx.fillRect(x, y + 20, 60, 80); ctx.fillRect(x + 70, y, 50, 100); ctx.fillRect(x + 130, y + 40, 40, 60);
-                });
-                
+                this.drawLayer(this.cityX, 300, (x) => { let y = canvas.height - CONFIG.groundH - 100; ctx.fillRect(x, y + 20, 60, 80); ctx.fillRect(x + 70, y, 50, 100); ctx.fillRect(x + 130, y + 40, 40, 60); });
                 let gy = canvas.height - CONFIG.groundH;
                 ctx.fillStyle = currentVisuals.ground; ctx.fillRect(0, gy, canvas.width, CONFIG.groundH);
                 ctx.fillStyle = currentVisuals.grass; ctx.fillRect(0, gy, canvas.width, 14);
                 ctx.strokeStyle = '#543847'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(canvas.width, gy); ctx.stroke();
-                
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                let offset = this.groundX % 20;
-                for(let i=-1; i<canvas.width/20 + 1; i++) {
-                    ctx.beginPath(); ctx.moveTo(i*20 - offset, gy + 15); ctx.lineTo(i*20 - offset + 10, canvas.height);
-                    ctx.lineTo(i*20 - offset - 5, canvas.height); ctx.lineTo(i*20 - offset - 15, gy + 15); ctx.fill();
-                }
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; let offset = this.groundX % 20;
+                for(let i=-1; i<canvas.width/20 + 1; i++) { ctx.beginPath(); ctx.moveTo(i*20 - offset, gy + 15); ctx.lineTo(i*20 - offset + 10, canvas.height); ctx.lineTo(i*20 - offset - 5, canvas.height); ctx.lineTo(i*20 - offset - 15, gy + 15); ctx.fill(); }
             },
-            drawLayer(offset, width, drawFn) {
-                let count=Math.ceil(canvas.width/width)+1; let off=offset%width;
-                for(let i=-1; i<count; i++) drawFn(i*width-off);
-            },
+            drawLayer(offset, width, drawFn) { let count=Math.ceil(canvas.width/width)+1; let off=offset%width; for(let i=-1; i<count; i++) drawFn(i*width-off); },
             update() { if(state.curr==='PLAY') { this.cloudsX+=0.5; this.cityX+=1; this.groundX+=CONFIG.pipeSpeed; } }
         };
 
@@ -578,33 +541,23 @@
             items: [],
             reset() { this.items = []; },
             update() {
-                if(state.frames%CONFIG.spawnRate===0) {
-                    let minY=50, maxY=canvas.height-CONFIG.groundH-CONFIG.pipeGap-minY;
-                    this.items.push({x:canvas.width, top:Math.floor(Math.random()*(maxY-minY+1)+minY), passed:false});
-                }
+                if(state.frames%CONFIG.spawnRate===0) { let minY=50, maxY=canvas.height-CONFIG.groundH-CONFIG.pipeGap-minY; this.items.push({x:canvas.width, top:Math.floor(Math.random()*(maxY-minY+1)+minY), passed:false}); }
                 for(let i=0; i<this.items.length; i++) {
-                    let p=this.items[i]; p.x-=CONFIG.pipeSpeed;
-                    let bx=bird.x, by=bird.y, br=10; 
+                    let p=this.items[i]; p.x-=CONFIG.pipeSpeed; let bx=bird.x, by=bird.y, br=10; 
                     if(bx+br>p.x && bx-br<p.x+52) { if(by-br<p.top || by+br>p.top+CONFIG.pipeGap) gameOver(); }
-                    if(p.x+52<bx && !p.passed) { 
-                        state.score++; p.passed=true; 
-                        document.getElementById('scoreVal').innerText=state.score; 
-                        playSound('score'); 
-                    }
+                    if(p.x+52<bx && !p.passed) { state.score++; p.passed=true; document.getElementById('scoreVal').innerText=state.score; playSound('score'); }
                     if(p.x<-60) { this.items.shift(); i--; }
                 }
             },
             draw() {
                 for(let p of this.items) {
                     let w=52, botY=p.top+CONFIG.pipeGap, botH=canvas.height-CONFIG.groundH-botY;
-                    ctx.fillStyle = currentVisuals.pipe; 
-                    ctx.strokeStyle='#543847'; ctx.lineWidth=3;
+                    ctx.fillStyle = currentVisuals.pipe; ctx.strokeStyle='#543847'; ctx.lineWidth=3;
                     ctx.fillRect(p.x, 0, w, p.top); ctx.strokeRect(p.x, -2, w, p.top);
                     ctx.fillRect(p.x-2, p.top-24, w+4, 24); ctx.strokeRect(p.x-2, p.top-24, w+4, 24);
                     ctx.fillRect(p.x, botY, w, botH); ctx.strokeRect(p.x, botY, w, botH);
                     ctx.fillRect(p.x-2, botY, w+4, 24); ctx.strokeRect(p.x-2, botY, w+4, 24);
-                    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                    ctx.fillRect(p.x+4, 0, 4, p.top-24); ctx.fillRect(p.x+4, botY+24, 4, botH-24);
+                    ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.fillRect(p.x+4, 0, 4, p.top-24); ctx.fillRect(p.x+4, botY+24, 4, botH-24);
                 }
             }
         };
@@ -624,66 +577,37 @@
 
         function loop() {
             ctx.save();
-            if (state.shake > 0) {
-                ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
-                state.shake *= 0.9; if (state.shake < 0.5) state.shake = 0;
-            }
+            if (state.shake > 0) { ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake); state.shake *= 0.9; if (state.shake < 0.5) state.shake = 0; }
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             if (state.curr === 'PLAY') updateSeasonVisuals();
-
-            background.draw(); 
-            drawWeather(); 
-            pipes.draw(); 
-            bird.draw(); 
-            drawParticles(); 
-            
-            ctx.restore();
-            
-            if (state.curr === 'PLAY') { 
-                background.update(); 
-                updateWeather(); 
-                bird.update(); 
-                pipes.update(); 
-                state.frames++; 
-            } else if (state.curr === 'OVER' && bird.y < canvas.height - CONFIG.groundH - bird.r) { 
-                bird.y += 10; bird.rot = 90; 
-            }
+            background.draw(); drawWeather(); pipes.draw(); bird.draw(); drawParticles(); ctx.restore();
+            if (state.curr === 'PLAY') { background.update(); updateWeather(); bird.update(); pipes.update(); state.frames++; } else if (state.curr === 'OVER' && bird.y < canvas.height - CONFIG.groundH - bird.r) { bird.y += 10; bird.rot = 90; }
             requestAnimationFrame(loop);
         }
 
-        function skipSplash() {
-            if (state.curr === 'SPLASH') {
-                // Tenta retomar áudio imediatamente no clique
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume().then(() => {
-                        startMusic('MENU');
-                    });
-                } else {
-                    startMusic('MENU');
-                }
+        // --- FUNÇÃO DE CLIQUE NO SPLASH (CORRIGIDA) ---
+        function handleSplashClick() {
+            // Se já não estiver no splash, sai
+            if (state.curr !== 'SPLASH') return;
 
-                const splash = document.getElementById('splashScreen');
-                splash.style.opacity = '0';
-                
-                setTimeout(() => {
-                    splash.classList.add('hidden');
-                    goToMenu();
-                }, 500);
-            }
+            const splash = document.getElementById('splashScreen');
+            
+            // Tentativa de retomar o AudioContext imediatamente
+            resumeAudioContext().then(() => {
+                startMusic('MENU');
+            });
+
+            // Animação de saída
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                goToMenu();
+            }, 500);
         }
-
-        document.getElementById('splashScreen').addEventListener('click', skipSplash);
-        document.getElementById('splashScreen').addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            skipSplash();
-        });
 
         function startGame() {
             state.curr = 'PLAY'; state.score = 0; state.frames = 0; bird.reset(); pipes.reset();
-            activeSeasonIndex = 0; currentVisuals = { ...SEASONS[0] };
-            weatherParticles = [];
-            
+            activeSeasonIndex = 0; currentVisuals = { ...SEASONS[0] }; weatherParticles = [];
             document.getElementById('scoreVal').innerText = '0';
             updateSeasonLabel(SEASONS[0]);
             toggleUI('hud', true); toggleUI('startScreen', false); toggleUI('gameOverScreen', false); toggleUI('pauseScreen', false);
@@ -691,23 +615,14 @@
         }
 
         function togglePause() {
-            if (state.curr === 'PLAY') {
-                state.curr = 'PAUSE';
-                stopMusic();
-                toggleUI('pauseScreen', true);
-            } else if (state.curr === 'PAUSE') {
-                state.curr = 'PLAY';
-                startMusic('GAME');
-                toggleUI('pauseScreen', false);
-            }
+            if (state.curr === 'PLAY') { state.curr = 'PAUSE'; stopMusic(); toggleUI('pauseScreen', true); } 
+            else if (state.curr === 'PAUSE') { state.curr = 'PLAY'; startMusic('GAME'); toggleUI('pauseScreen', false); }
         }
 
         function goToMenu() {
-            state.curr = 'START';
-            startMusic('MENU');
+            state.curr = 'START'; startMusic('MENU');
             toggleUI('hud', false); toggleUI('gameOverScreen', false); toggleUI('pauseScreen', false); toggleUI('skinsScreen', false); toggleUI('startScreen', true);
-            bird.y = canvas.height / 2; bird.rot = 0; pipes.reset(); weatherParticles = [];
-            currentVisuals = { ...SEASONS[0] }; background.draw(); bird.draw();
+            bird.y = canvas.height / 2; bird.rot = 0; pipes.reset(); weatherParticles = []; currentVisuals = { ...SEASONS[0] }; background.draw(); bird.draw();
         }
 
         function gameOver() {
@@ -715,7 +630,6 @@
             state.curr = 'OVER'; state.shake = 20; playSound('hit'); stopMusic();
             document.getElementById('flash').style.opacity = '0.6'; setTimeout(() => document.getElementById('flash').style.opacity = '0', 100);
             if (state.score > state.best) { state.best = state.score; localStorage.setItem('remasterBest', state.best); }
-            
             document.getElementById('finalSeasonIcon').innerText = SEASONS[activeSeasonIndex].icon;
             document.getElementById('finalScore').innerText = state.score; document.getElementById('bestScore').innerText = state.best;
             toggleUI('hud', false); setTimeout(() => toggleUI('gameOverScreen', true), 500);
@@ -726,16 +640,8 @@
             if (show) el.classList.remove('hidden'); else el.classList.add('hidden');
         }
 
-        function showSkinsMenu() {
-            selectSkin(state.skin);
-            toggleUI('startScreen', false);
-            toggleUI('skinsScreen', true);
-        }
-
-        function closeSkinsMenu() {
-            toggleUI('skinsScreen', false);
-            toggleUI('startScreen', true);
-        }
+        function showSkinsMenu() { selectSkin(state.skin); toggleUI('startScreen', false); toggleUI('skinsScreen', true); }
+        function closeSkinsMenu() { toggleUI('skinsScreen', false); toggleUI('startScreen', true); }
 
         function handleInput(e) {
             if (e.target.closest('button') || e.target.closest('.skin-option')) return;
@@ -743,9 +649,7 @@
             if (state.curr === 'PLAY') bird.flap();
         }
 
-        window.addEventListener('keydown', (e) => { if (e.code === 'Space') {
-             if(state.curr === 'PLAY') bird.flap();
-        }});
+        window.addEventListener('keydown', (e) => { if (e.code === 'Space') { if(state.curr === 'PLAY') bird.flap(); }});
         window.addEventListener('mousedown', handleInput);
         window.addEventListener('touchstart', handleInput, {passive: false});
 
