@@ -98,7 +98,7 @@
         }
         #seasonLabel.visible { opacity: 0.8; transform: translateY(0); }
 
-        /* --- SPLASH SCREEN (INTRO) --- */
+        /* --- SPLASH SCREEN (RETRO NEON) --- */
         #splashScreen {
             background-color: #1a0b2e;
             background-image: 
@@ -109,8 +109,8 @@
             opacity: 1;
             transition: opacity 0.5s ease-in-out;
             overflow: hidden;
-            pointer-events: auto !important; /* Obriga a aceitar cliques */
-            cursor: pointer !important; /* Mãozinha em todo o ecrã */
+            pointer-events: auto !important;
+            cursor: pointer;
         }
 
         .retro-grid {
@@ -128,8 +128,12 @@
         .splash-content {
             position: relative; z-index: 10; display: flex; flex-direction: column;
             align-items: center; justify-content: center; height: 100%; width: 100%;
-            /* Removemos pointer-events: none daqui para garantir que filhos não bloqueiem */
+            /* Permite clicar nos filhos */
+            pointer-events: none; 
         }
+
+        /* Reativa cliques nos elementos internos */
+        .splash-content > * { pointer-events: auto; }
 
         .company-header {
             font-size: 4rem; line-height: 0.9; font-weight: bold; color: #fff;
@@ -143,6 +147,12 @@
             width: 70%; max-width: 250px; height: auto; margin-bottom: 2rem;
             filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
             animation: bounceIn 1s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        /* Backup caso a imagem falhe */
+        .intro-logo-backup {
+            font-size: 6rem; margin-bottom: 2rem;
+            animation: bounceIn 1s; display: none;
         }
 
         .credits-container {
@@ -167,8 +177,9 @@
             padding: 10px 20px;
             border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.3);
-            pointer-events: auto; /* Garante clique explícito */
+            pointer-events: auto;
             cursor: pointer;
+            z-index: 50; /* Garante que está no topo */
         }
 
         @keyframes gridMove { 0% { background-position: 0 0; } 100% { background-position: 0 40px; } }
@@ -181,19 +192,22 @@
 </head>
 <body>
 
-    <!-- INTRO COM CLIQUE UNIVERSAL -->
-    <!-- Adicionado ID e onclick direto para redundância -->
-    <div id="splashScreen" class="ui-layer" onclick="handleSplashClick()">
+    <!-- INTRO COM ÁREA DE CLIQUE ROBUSTA -->
+    <div id="splashScreen" class="ui-layer">
         <div class="retro-grid"></div>
         <div class="splash-content">
             <h1 class="company-header">DANI PAÍSES<br><span class="store-sub">STORE WEB</span></h1>
-            <img src="1000011034.png" alt="Logo" class="intro-logo" onerror="this.style.display='none'">
+            
+            <!-- Imagem e Backup -->
+            <img src="1000011034.png" alt="Logo" class="intro-logo" onerror="this.style.display='none'; document.getElementById('logo-backup').style.display='block'">
+            <div id="logo-backup" class="intro-logo-backup">🌍</div>
+            
             <div class="credits-container">
                 <div class="owner-row">DONO DA EMPRESA DANIEL</div>
                 <div class="creator-row">CRIADOR FUNCIONÁRIO LUCAS</div>
             </div>
             <!-- Botão de Ação -->
-            <button class="click-hint" onclick="handleSplashClick()">CLIQUE PARA JOGAR</button>
+            <button id="splashBtn" class="click-hint">(CLIQUE PARA JOGAR)</button>
         </div>
         <div class="absolute bottom-4 text-xs text-cyan-500 opacity-80">© 2025 Direitos Reservados</div>
     </div>
@@ -309,6 +323,7 @@
             skin: localStorage.getItem('selectedSkin') || 'brazil'
         };
 
+        // --- SKINS (PAÍSES) ---
         const SKINS = {
             'brazil': { type: 'brazil', wing: '#fff' },
             'portugal': { type: 'portugal', wing: '#fff' },
@@ -323,7 +338,8 @@
             state.skin = skinId;
             localStorage.setItem('selectedSkin', skinId);
             document.querySelectorAll('.skin-option').forEach(el => el.classList.remove('selected'));
-            document.getElementById('skin-' + skinId).classList.add('selected');
+            const el = document.getElementById('skin-' + skinId);
+            if(el) el.classList.add('selected');
         }
 
         // --- CORES & ESTAÇÕES ---
@@ -386,28 +402,27 @@
             setTimeout(() => label.classList.add('visible'), 100);
         }
 
-        // --- SISTEMA DE ÁUDIO ROBUSTO ---
+        // --- SISTEMA DE ÁUDIO & MÚSICA ROBUSTO ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let isMusicPlaying = false; 
         let musicTimer = null; 
         let nextNoteTime = 0; 
         let noteIndex = 0;
         let currentMelodyType = 'MENU';
-        let audioUnlocked = false; // Flag para saber se já temos permissão
+        let audioUnlocked = false;
 
         const menuMelody = [{f:392.00,d:0.4}, {f:329.63,d:0.4}, {f:261.63,d:0.4}, {f:196.00,d:0.8}, {f:261.63,d:0.4}, {f:329.63,d:0.4}, {f:392.00,d:0.8}, {f:0,d:0.4}];
         const gameMelody = [{f:261.63,d:0.2},{f:329.63,d:0.2},{f:392.00,d:0.2},{f:523.25,d:0.4},{f:392.00,d:0.2},{f:523.25,d:0.4},{f:0,d:0.1},{f:293.66,d:0.2},{f:349.23,d:0.2},{f:440.00,d:0.2},{f:587.33,d:0.4},{f:440.00,d:0.2},{f:587.33,d:0.4},{f:0,d:0.1}];
 
-        // Função vital: Tenta retomar o áudio
+        // Tenta acordar o AudioContext
         function resumeAudioContext() {
             if (audioCtx.state === 'suspended') {
-                return audioCtx.resume().then(() => {
+                audioCtx.resume().then(() => {
                     audioUnlocked = true;
                     return true;
                 }).catch(() => false);
             }
             audioUnlocked = true;
-            return Promise.resolve(true);
         }
 
         function playTone(freq, duration, time, vol=0.1, type='square') {
@@ -439,10 +454,13 @@
 
         function startMusic(type) {
             if (currentMelodyType === type && isMusicPlaying) return;
+            // Tenta dar resume sempre que iniciar música
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             
             currentMelodyType = type;
             isMusicPlaying = true;
             noteIndex = 0;
+            // IMPORTANTE: Reseta o tempo para agora
             nextNoteTime = audioCtx.currentTime + 0.1;
             
             if(musicTimer) cancelAnimationFrame(musicTimer);
@@ -452,12 +470,13 @@
         function stopMusic() { isMusicPlaying = false; if (musicTimer) cancelAnimationFrame(musicTimer); }
 
         function playSound(type) {
-            // Se o áudio não estiver desbloqueado, ignora para não dar erro
-            if (!audioUnlocked && audioCtx.state === 'suspended') return;
-            
+            if(!audioUnlocked && audioCtx.state === 'suspended') return;
             const now = audioCtx.currentTime; 
             if(type==='flap')playTone(300, 0.1, now, 0.2, 'triangle');
-            else if(type==='score') { playTone(1000, 0.1, now, 0.1, 'square'); playTone(1500, 0.1, now + 0.05, 0.1, 'square'); }
+            else if(type==='score') { 
+                playTone(1000, 0.1, now, 0.1, 'square'); 
+                playTone(1500, 0.1, now + 0.05, 0.1, 'square'); 
+            }
             else if(type==='hit')playTone(150, 0.3, now, 0.3, 'sawtooth');
         }
 
@@ -492,7 +511,9 @@
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.rot * Math.PI/180);
                 let skinData = SKINS[state.skin] || SKINS['brazil'];
                 let type = skinData.type;
+
                 ctx.beginPath(); ctx.arc(0, 0, 17, 0, Math.PI*2); ctx.clip();
+
                 if (type === 'brazil') { ctx.fillStyle = '#009c3b'; ctx.fillRect(-17, -17, 34, 34); ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.fill(); ctx.fillStyle = '#002776'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill(); } 
                 else if (type === 'portugal') { ctx.fillStyle = '#006600'; ctx.fillRect(-17, -17, 14, 34); ctx.fillStyle = '#ff0000'; ctx.fillRect(-3, -17, 20, 34); ctx.fillStyle = '#ffdf00'; ctx.beginPath(); ctx.arc(-3, 0, 6, 0, Math.PI*2); ctx.fill(); } 
                 else if (type === 'usa') { ctx.fillStyle = '#fff'; ctx.fillRect(-17, -17, 34, 34); ctx.fillStyle = '#b22234'; for(let i=-17; i<17; i+=6) ctx.fillRect(-17, i, 34, 3); ctx.fillStyle = '#3c3b6e'; ctx.fillRect(-17, -17, 16, 16); } 
@@ -522,6 +543,7 @@
                 let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
                 grad.addColorStop(0, currentVisuals.skyTop); grad.addColorStop(1, currentVisuals.skyBot);
                 ctx.fillStyle = grad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
                 ctx.fillStyle = '#fff';
                 this.drawLayer(this.cloudsX, 400, (x) => { ctx.beginPath(); ctx.arc(x, 100, 30, 0, Math.PI*2); ctx.arc(x+25, 90, 35, 0, Math.PI*2); ctx.arc(x+50, 100, 28, 0, Math.PI*2); ctx.fill(); });
                 ctx.fillStyle = currentVisuals.bg;
@@ -592,12 +614,12 @@
 
             const splash = document.getElementById('splashScreen');
             
-            // Tentativa de retomar o AudioContext imediatamente
-            resumeAudioContext().then(() => {
-                startMusic('MENU');
-            });
+            // Resume o áudio, e só DEPOIS muda a tela
+            // Isso garante que o navegador veja o clique como intenção de áudio
+            resumeAudioContext();
+            startMusic('MENU');
 
-            // Animação de saída
+            // Transição Visual
             splash.style.opacity = '0';
             setTimeout(() => {
                 splash.classList.add('hidden');
@@ -662,6 +684,13 @@
         document.getElementById('btnPause').onclick = togglePause;
         document.getElementById('btnResume').onclick = togglePause;
         document.getElementById('btnMenuFromPause').onclick = goToMenu;
+        
+        // Listener direto no elemento da intro (Div pai e botão)
+        document.getElementById('splashScreen').onclick = handleSplashClick;
+        document.querySelector('.click-hint').onclick = (e) => {
+            e.stopPropagation(); // Evita duplo clique
+            handleSplashClick();
+        };
 
         selectSkin(state.skin);
         bird.y = canvas.height / 2; background.draw(); bird.draw(); loop();
