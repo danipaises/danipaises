@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dani Países System | Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #02040a; color: #e2e8f0; font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at center, #1e293b 0%, #02040a 70%); min-height: 100vh; display: flex; flex-direction: column; }
+        .font-tech { font-family: 'Rajdhani', sans-serif; }
+        .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); transition: transform 0.3s, border-color 0.3s; }
+        .glass-card:hover { transform: translateY(-5px); border-color: #f59e0b; }
+    </style>
+</head>
+<body class="justify-between">
+
+    <nav class="w-full p-6 flex justify-between items-center bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="flex items-center gap-2">
+            <i class="fa-solid fa-cube text-amber-500 text-2xl animate-pulse"></i>
+            <span class="font-tech font-bold text-xl tracking-widest text-white">DANI PAÍSES</span>
+        </div>
+        <!-- VERSÃO ATUALIZADA AQUI -->
+        <div class="text-xs text-slate-500 font-mono">v1.0 STABLE (DPFC)</div>
+    </nav>
+
+    <main class="flex-1 flex flex-col items-center justify-center px-4 text-center py-10">
+        
+        <div class="mb-8">
+            <span class="px-3 py-1 rounded-full bg-amber-900/20 text-amber-400 text-xs font-mono border border-amber-900/50">
+                SISTEMA DE ARQUIVOS INTELIGENTE
+            </span>
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-tech font-bold text-white mb-6 leading-tight">
+            Seus arquivos.<br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">Auto-Conversíveis.</span>
+        </h1>
+
+        <p class="text-slate-400 text-lg max-w-2xl mb-12 leading-relaxed">
+            O formato <strong>.DPFC</strong> é um container seguro que armazena múltiplos documentos e inclui seu próprio software de conversão interno. Roda em qualquer navegador.
+        </p>
+
+        <div class="grid md:grid-cols-2 gap-6 w-full max-w-3xl">
+            
+            <a href="docs.html" class="glass-card p-8 rounded-2xl text-left group cursor-pointer block hover:bg-slate-800/50">
+                <div class="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center mb-4 text-white group-hover:bg-blue-600 transition-colors">
+                    <i class="fa-brands fa-windows text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Instalação do Sistema</h3>
+                <p class="text-slate-400 text-sm">Configure seu Windows ou Linux para reconhecer e abrir os arquivos .DPFC automaticamente.</p>
+                <div class="mt-4 text-blue-400 text-sm font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                    Configurar Agora <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+
+            <a href="app.html" class="glass-card p-8 rounded-2xl text-left group cursor-pointer block border-amber-500/20 hover:bg-slate-800/50">
+                <div class="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center mb-4 text-white group-hover:bg-amber-600 transition-colors">
+                    <i class="fa-solid fa-wand-magic-sparkles text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-2">Criar Container .DPFC</h3>
+                <p class="text-slate-400 text-sm">Acesse a ferramenta de criação. Arraste fotos, PDFs e textos para criar um pacote único.</p>
+                <div class="mt-4 text-amber-400 text-sm font-bold flex items-center gap-2 group-hover:translate-x-2 transition-transform">
+                    Iniciar Conversor <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <footer class="p-6 text-center text-slate-600 text-xs border-t border-slate-900">
+        &copy; 2026 Dani Países Technology. Todos os direitos reservados.
+    </footer>
+
+</body>
+</html>
+
+
